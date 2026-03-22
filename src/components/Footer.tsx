@@ -10,9 +10,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2">
             <Link to="/" className="inline-flex items-center gap-2.5 mb-3">
-              <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
-                <span className="text-white font-bold text-sm leading-none tracking-tight select-none">JD</span>
-              </div>
+            <img src="/jode-logo.svg" className="w-9 h-9" alt="JODE" />
               <span className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Jordan Open Data Explorer</span>
             </Link>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-xs mb-4">

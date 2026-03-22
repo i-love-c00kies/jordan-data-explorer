@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import {LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, Legend } from 'recharts';
 import Papa from 'papaparse';
 import { useTheme } from '../context/ThemeContext';
 
@@ -10,22 +10,29 @@ const CustomTooltip = ({ active, payload, label, unit }: any) => {
   if (!active || !payload || !payload.length) return null;
   const isProjected = String(label).includes('Proj');
 
+  // Filter payload to avoid showing both 'actual' and 'projected' values at the same point
+  const filteredPayload = payload.filter((p: any) => 
+    isProjected ? p.dataKey.endsWith('_projected') : p.dataKey.endsWith('_actual')
+  );
+
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-3 min-w-[160px] text-sm">
       <div className="flex items-center justify-between gap-3 mb-2">
         <span className="font-semibold text-slate-900 dark:text-white">{label}</span>
         {isProjected && (
-          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded-md">
+          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
             Projected
           </span>
         )}
       </div>
       <div className="space-y-1.5">
-        {payload.map((entry: any) => (
-          <div key={entry.name} className="flex items-center justify-between gap-4">
+        {filteredPayload.map((entry: any) => (
+          <div key={entry.dataKey} className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full shrink-0" style={{ background: entry.color }} />
-              <span className="text-xs text-slate-500 dark:text-slate-400">{entry.name}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {entry.name.replace(' (Actual)', '').replace(' (Projected)', '')}
+              </span>
             </div>
             <span className="text-xs font-semibold tabular-nums text-slate-900 dark:text-white">
               {entry.value != null ? `${entry.value}${unit}` : '—'}
@@ -38,7 +45,6 @@ const CustomTooltip = ({ active, payload, label, unit }: any) => {
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-
 
 const OWID_CONFIG: Record<string, any> = {
   '1':  { slug: 'share-of-individuals-using-the-internet',            title: 'Internet Penetration',   desc: 'World Bank vs Local TRC estimates.',                       unit: '%',             colors: ['#94a3b8', '#2563eb'] },
@@ -53,73 +59,65 @@ const OWID_CONFIG: Record<string, any> = {
   '10': { slug: 'child-mortality',                                     title: 'Child Mortality',        desc: 'Share of children who die before age five.',               unit: '%',             colors: ['#ef4444'] },
   '11': { slug: 'cross-country-literacy-rates',                       title: 'Literacy Rate',          desc: 'Share of population aged 15+ who can read.',               unit: '%',             colors: ['#8b5cf6'] },
   '12': { slug: 'mobile-cellular-subscriptions-per-100-people',       title: 'Mobile Subscriptions',   desc: 'Subscriptions per 100 people.',                            unit: '',              colors: ['#3b82f6'] },
-  // ─── THE NEW 12 DATASETS ───
-  // Note the "noCap: true" added to Water Scarcity!
   '13': { slug: 'freshwater-withdrawals-as-a-share-of-internal-resources', title: 'Water Scarcity', desc: 'Freshwater withdrawals vs internal resources.', unit: '%', noCap: true, colors: ['#0284c7'] },
   '14': { slug: 'unemployment-rate',                                  title: 'Unemployment Rate',      desc: 'Share of labor force without work.',                       unit: '%',             colors: ['#dc2626'] },
-  '15': { slug: 'consumer-price-index',                                               title: 'Consumer Price Index',   desc: 'Average price level of goods and services.',               unit: ' Index',        colors: ['#f97316'] },
-  '16': { slug: 'human-development-index',                                            title: 'Human Development Index',desc: 'Composite index of life, education, and income.',          unit: ' Score',        colors: ['#8b5cf6'] },
-  '17': { slug: 'infant-mortality',                                           title: 'Infant Mortality',       desc: 'Infant deaths per 1,000 live births.',                     unit: '',              colors: ['#0ea5e9'] },
-  '18': { slug: 'total-gov-expenditure-gdp-wdi',                              title: 'Government Spending',    desc: 'Government spending as a share of GDP.',                   unit: '%',             colors: ['#b91c1c'] },
-  '19': { slug: 'out-of-pocket-expenditure-per-capita-on-healthcare',         title: 'Out-of-Pocket Health',   desc: 'Health expenditure per capita.',                           unit: ' USD',          colors: ['#10b981'] },
-  '20': { slug: 'female-labor-force-participation-rates',                     title: 'Female Labor Force',     desc: 'Female participation in the labor force.',                 unit: '%',             colors: ['#d946ef'] },
-  '21': { slug: 'daily-per-capita-protein-supply',                            title: 'Daily Protein Supply',   desc: 'Daily per capita supply of protein.',                      unit: ' grams',        colors: ['#f59e0b'] },
-  '22': { slug: 'money-sent-or-brought-back-by-migrants-as-a-share-of-gdp',   title: 'Remittances',            desc: 'Personal remittances as a percentage of GDP.',             unit: '%',             colors: ['#22c55e'] },
-  '23': { slug: 'electricity-generation',                                     title: 'Electricity Generation', desc: 'Total electricity generation.',                            unit: ' TWh',          colors: ['#475569'] },
-  '24': { slug: 'agricultural-land',                                          title: 'Agricultural Land',      desc: 'Share of land area used for agriculture.',                 unit: '%',             noCap: true, colors: ['#6366f1'] },
+  '15': { slug: 'consumer-price-index',                               title: 'Consumer Price Index',   desc: 'Average price level of goods and services.',               unit: ' Index',        colors: ['#f97316'] },
+  '16': { slug: 'human-development-index',                            title: 'Human Development Index',desc: 'Composite index of life, education, and income.',          unit: ' Score',        colors: ['#8b5cf6'] },
+  '17': { slug: 'infant-mortality',                                   title: 'Infant Mortality',       desc: 'Infant deaths per 1,000 live births.',                     unit: '',              colors: ['#0ea5e9'] },
+  '18': { slug: 'total-gov-expenditure-gdp-wdi',                      title: 'Government Spending',    desc: 'Government spending as a share of GDP.',                   unit: '%',             colors: ['#b91c1c'] },
+  '19': { slug: 'out-of-pocket-expenditure-per-capita-on-healthcare', title: 'Out-of-Pocket Health',   desc: 'Health expenditure per capita.',                           unit: ' USD',          colors: ['#10b981'] },
+  '20': { slug: 'female-labor-force-participation-rates',             title: 'Female Labor Force',     desc: 'Female participation in the labor force.',                 unit: '%',             colors: ['#d946ef'] },
+  '21': { slug: 'daily-per-capita-protein-supply',                    title: 'Daily Protein Supply',   desc: 'Daily per capita supply of protein.',                      unit: ' grams',        colors: ['#f59e0b'] },
+  '22': { slug: 'money-sent-or-brought-back-by-migrants-as-a-share-of-gdp',   title: 'Remittances',     desc: 'Personal remittances as a percentage of GDP.',             unit: '%',             colors: ['#22c55e'] },
+  '23': { slug: 'electricity-generation',                             title: 'Electricity Generation', desc: 'Total electricity generation.',                            unit: ' TWh',          colors: ['#475569'] },
+  '24': { slug: 'agricultural-land',                                  title: 'Agricultural Land',      desc: 'Share of land area used for agriculture.',                 unit: '%',             noCap: true, colors: ['#6366f1'] },
 };
 
-  // 🔮 PROJECTION ENGINE: OLS Linear Regression with Asymptotic Bounding
-  const generateProjections = (historicalData: any[], targetYear: number, ceiling: number | null = null) => {
-    if (historicalData.length < 3) return historicalData;
-    const projectedData = [...historicalData];
-    let currentYear = parseInt(projectedData[projectedData.length - 1].label);
+const generateProjections = (historicalData: any[], targetYear: number, ceiling: number | null = null) => {
+  if (historicalData.length < 3) return historicalData;
+  const projectedData = [...historicalData];
+  let currentYear = parseInt(projectedData[projectedData.length - 1].label);
 
-    const dataKeys = Object.keys(historicalData[historicalData.length - 1]).filter(k => k !== 'label');
-    const regressions: Record<string, { m: number, b: number, n: number, lastX: number }> = {};
+  const dataKeys = Object.keys(historicalData[historicalData.length - 1]).filter(k => k !== 'label');
+  const regressions: Record<string, { m: number, b: number, n: number, lastX: number }> = {};
+
+  dataKeys.forEach(key => {
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    const validData = historicalData.filter(d => d[key] !== null && d[key] !== undefined).slice(-10);
+    const n = validData.length;
+
+    if (n > 1) {
+      validData.forEach((point, i) => {
+        const x = i;
+        const y = point[key];
+        sumX += x; sumY += y; sumXY += x * y; sumXX += x * x;
+      });
+      const m = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+      const b = (sumY - m * sumX) / n;
+      regressions[key] = { m, b, n, lastX: n - 1 };
+    }
+  });
+
+  let step = 1;
+  while (currentYear < targetYear) {
+    currentYear++;
+    const nextPoint: any = { label: `${currentYear} (Proj)` };
 
     dataKeys.forEach(key => {
-      let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-      const validData = historicalData.filter(d => d[key] !== null && d[key] !== undefined).slice(-10);
-      const n = validData.length;
-
-      if (n > 1) {
-        validData.forEach((point, i) => {
-          const x = i;
-          const y = point[key];
-          sumX += x; sumY += y; sumXY += x * y; sumXX += x * x;
-        });
-        const m = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-        const b = (sumY - m * sumX) / n;
-        regressions[key] = { m, b, n, lastX: n - 1 };
+      if (regressions[key]) {
+        const { m, b, lastX } = regressions[key];
+        const x = lastX + step;
+        let predictedY = m * x + b;
+        predictedY = Math.max(0, predictedY);
+        if (ceiling !== null) predictedY = Math.min(ceiling, predictedY);
+        nextPoint[key] = Math.round(predictedY * 100) / 100;
       }
     });
-
-    let step = 1;
-    while (currentYear < targetYear) {
-      currentYear++;
-      const nextPoint: any = { label: `${currentYear} (Proj)` };
-
-      dataKeys.forEach(key => {
-        if (regressions[key]) {
-          const { m, b, lastX } = regressions[key];
-          const x = lastX + step;
-          let predictedY = m * x + b;
-
-          // 🛡️ THE BOUNDARY LOGIC
-          predictedY = Math.max(0, predictedY); // The Floor: Prevents negative values
-          if (ceiling !== null) {
-            predictedY = Math.min(ceiling, predictedY); // The Ceiling: Prevents exceeding natural limits
-          }
-
-          nextPoint[key] = Math.round(predictedY * 100) / 100;
-        }
-      });
-      projectedData.push(nextPoint);
-      step++;
-    }
-    return projectedData;
-  };
+    projectedData.push(nextPoint);
+    step++;
+  }
+  return projectedData;
+};
 
 export default function DatasetView() {
   const { id } = useParams();
@@ -136,7 +134,21 @@ export default function DatasetView() {
     return data;
   }, [data, timeFilter]);
 
-
+  // Transform data for Dashed effect
+  const chartData = useMemo(() => {
+    return activeData.map((d, index) => {
+      const isProj = String(d.label).includes('Proj');
+      const isBridgePoint = !isProj && activeData[index + 1] && String(activeData[index + 1].label).includes('Proj');
+      
+      const newObj: any = { ...d };
+      Object.keys(d).forEach(key => {
+        if (key === 'label') return;
+        newObj[`${key}_actual`] = !isProj ? d[key] : null;
+        newObj[`${key}_projected`] = (isProj || isBridgePoint) ? d[key] : null;
+      });
+      return newObj;
+    });
+  }, [activeData]);
 
   useEffect(() => {
     setLoading(true);
@@ -144,22 +156,19 @@ export default function DatasetView() {
     if (!config) { setLoading(false); return; }
     setMetadata({ title: config.title, description: config.desc, unit: config.unit, colors: config.colors });
 
-      // ⚡ 1. CHECK CACHE FIRST
-      const cacheKey = `jode-data-${id || '4'}`;
-      const cachedData = sessionStorage.getItem(cacheKey);
-      if (cachedData) {
-        setData(JSON.parse(cachedData));
-        setLoading(false);
-        return; // Skip PapaParse entirely!
-      }
+    const cacheKey = `jode-data-${id || '4'}`;
+    const cachedData = sessionStorage.getItem(cacheKey);
+    if (cachedData) {
+      setData(JSON.parse(cachedData));
+      setLoading(false);
+      return;
+    }
 
-    // ─── Papa.parse (DO NOT ALTER) ────────────────────────────────────────
     Papa.parse(`https://ourworldindata.org/grapher/${config.slug}.csv`, {
       download: true,
       header: true,
       complete: (results) => {
         const jordanData = results.data.filter((row: any) => row['Entity'] === 'Jordan');
-
         let rawData = jordanData.map((row: any) => {
           const keys = Object.keys(row);
           const valueKey = keys.find(k => k !== 'Entity' && k !== 'Code' && k !== 'Year' && k !== '');
@@ -200,32 +209,19 @@ export default function DatasetView() {
           return rowData;
         });
 
-        // 🧠 Calculate the natural limit. If the unit is %, it cannot exceed 100.
         const naturalCeiling = (config.unit === '%' && !config.noCap) ? 100 : null;
-        // Generate projections to 2027, enforcing the ceiling
         const finalData = generateProjections(formattedData, 2027, naturalCeiling);
-
-        // Cache parsed + projected data for this dataset id
         sessionStorage.setItem(cacheKey, JSON.stringify(finalData));
-
         setData(finalData);
         setLoading(false);
       },
-      error: (err) => { 
-        console.error("Data fetch blocked or missing:", err); 
-        setData([]); // Ensure data array is empty
-        setMetadata(prev => ({ ...prev, description: "⚠️ Data source currently unavailable or blocked by provider." }));
-        setLoading(false); 
-      },
+      error: () => setLoading(false),
     });
-    // ─── END Papa.parse ───────────────────────────────────────────────────
   }, [id]);
 
-  // ─── Chart renderer ───────────────────────────────────────────────────────
   const renderChart = () => {
-    const chartData = activeData;
     if (chartData.length < 2) return null;
-    const dataKeys = Object.keys(chartData[chartData.length - 2]).filter(k => k !== 'label');
+    const dataKeys = Object.keys(activeData[0] || {}).filter(k => k !== 'label');
 
     const gridColor   = isDark ? '#1e293b' : '#f1f5f9';
     const axisColor   = isDark ? '#475569' : '#94a3b8';
@@ -251,181 +247,92 @@ export default function DatasetView() {
           domain={['auto', 'auto']}
           width={48}
         />
-        <Tooltip
-          content={<CustomTooltip unit={metadata.unit} />}
-          cursor={{ stroke: isDark ? '#334155' : '#e2e8f0', strokeWidth: 1 }}
-        />
-        <Legend
-          wrapperStyle={{ paddingTop: '16px', fontSize: '12px', color: isDark ? '#64748b' : '#94a3b8' }}
-          iconType="circle"
-          iconSize={8}
-        />
+        <Tooltip content={<CustomTooltip unit={metadata.unit} />} cursor={{ stroke: isDark ? '#334155' : '#e2e8f0', strokeWidth: 1 }} />
+        <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px', color: isDark ? '#64748b' : '#94a3b8' }} iconType="circle" iconSize={8} />
+        
         {dataKeys.map((key, index) => (
-          <Line
-            key={key}
-            type="monotone"
-            dataKey={key}
-            name={key}
-            stroke={metadata.colors[index % metadata.colors.length]}
-            strokeWidth={2.5}
-            dot={false}
-            activeDot={{ r: 5, strokeWidth: 0 }}
-            connectNulls={true}
-            strokeDasharray={
-              chartData[chartData.length - 1].label.includes('Proj')
-                ? chartData.findIndex(d => d.label.includes('Proj')) > 0
-                  ? undefined
-                  : '5 5'
-                : '0'
-            }
-          />
+          <React.Fragment key={key}>
+            {/* Historical Series (Solid) */}
+            <Line
+              type="monotone"
+              dataKey={`${key}_actual`}
+              name={key}
+              stroke={metadata.colors[index % metadata.colors.length]}
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{ r: 5, strokeWidth: 0 }}
+              connectNulls
+            />
+            {/* Projected Series (Dashed) */}
+            <Line
+              type="monotone"
+              dataKey={`${key}_projected`}
+              name={`${key} (Projected)`}
+              stroke={metadata.colors[index % metadata.colors.length]}
+              strokeWidth={2.5}
+              strokeDasharray="8 5"
+              dot={false}
+              activeDot={{ r: 5, strokeWidth: 0 }}
+              connectNulls
+              legendType="none" // Hides from legend to keep UI clean
+            />
+          </React.Fragment>
         ))}
-        <Brush
-          dataKey="label"
-          height={28}
-          stroke={brushStroke}
-          fill={brushFill}
-          travellerWidth={8}
-          tickFormatter={() => ''}
-        />
+
+        <Brush dataKey="label" height={28} stroke={brushStroke} fill={brushFill} travellerWidth={8} tickFormatter={() => ''} />
       </LineChart>
     );
   };
 
   const realPts  = data.filter(d => !String(d.label).includes('Proj'));
   const projPts  = data.filter(d =>  String(d.label).includes('Proj'));
-  const spanText = realPts.length
-    ? `${realPts[0].label} – ${realPts[realPts.length - 1].label}`
-    : null;
+  const spanText = realPts.length ? `${realPts[0].label} – ${realPts[realPts.length - 1].label}` : null;
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 pb-20">
-
-      {/* ── Header ───────────────────────────────────────────────────────────── */}
       <div className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
         <div className="max-w-5xl mx-auto px-5 pt-8 pb-6">
-
-          <Link
-            to="/datasets"
-            className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mb-6"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-            </svg>
+          <Link to="/datasets" className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mb-6">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
             All datasets
           </Link>
-
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1.5">
-                {metadata.title || '—'}
-              </h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                {metadata.description}
-                {metadata.unit && (
-                  <span className="ml-1 text-slate-600 dark:text-slate-300 font-medium">
-                    · {metadata.unit.trim()}
-                  </span>
-                )}
-              </p>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1.5">{metadata.title || '—'}</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{metadata.description} {metadata.unit && <span className="ml-1 text-slate-600 dark:text-slate-300 font-medium">· {metadata.unit.trim()}</span>}</p>
             </div>
-
             {!loading && data.length > 0 && (
               <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                {spanText && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                    </svg>
-                    {spanText}
-                  </span>
-                )}
-                {projPts.length > 0 && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-300">
-                    +{projPts.length} projected to 2027
-                  </span>
-                )}
+                {spanText && <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300">{spanText}</span>}
+                {projPts.length > 0 && <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-300">+{projPts.length} projected</span>}
               </div>
             )}
           </div>
         </div>
       </div>
-
-      {/* ── Chart section ────────────────────────────────────────────────────── */}
       <div className="max-w-5xl mx-auto px-5 py-8">
-
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-
-          {/* Chart header */}
           {!loading && data.length > 0 && (
             <div className="flex items-center justify-between px-5 pt-5 pb-1">
-              <div className="flex items-center gap-3">
-                {projPts.length > 0 && (
-                  <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-6 border-t-2 border-slate-300 dark:border-slate-600 inline-block" />
-                      Historical
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-6 border-t-2 border-dashed border-amber-400 inline-block" />
-                      Projected
-                    </span>
-                  </div>
-                )}
+              <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
+                <span className="flex items-center gap-1.5"><span className="w-6 border-t-2 border-slate-300 dark:border-slate-600 inline-block" />Historical</span>
+                <span className="flex items-center gap-1.5"><span className="w-6 border-t-2 border-dashed border-amber-400 inline-block" />Projected</span>
               </div>
-
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                 {[['all', 'All time'], ['recent', 'Last 20 yrs']].map(([key, label]) => (
-                  <button
-                    key={key}
-                    onClick={() => setTimeFilter(key)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                      timeFilter === key
-                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                    }`}
-                  >
-                    {label}
-                  </button>
+                  <button key={key} onClick={() => setTimeFilter(key)} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${timeFilter === key ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>{label}</button>
                 ))}
               </div>
             </div>
           )}
-
-          {/* Chart */}
           <div className="p-4 pt-2">
             {loading ? (
-              <div className="h-[420px] flex flex-col items-center justify-center gap-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg animate-pulse">
-                <svg className="w-8 h-8 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
-                </svg>
-                <p className="text-sm text-slate-400 dark:text-slate-500">Loading data…</p>
-              </div>
-            ) : data.length > 0 ? (
-              <ResponsiveContainer width="100%" height={420}>
-                {renderChart()}
-              </ResponsiveContainer>
+              <div className="h-[420px] flex flex-col items-center justify-center gap-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg animate-pulse"><p className="text-sm text-slate-400 dark:text-slate-500">Loading data…</p></div>
             ) : (
-              <div className="h-[420px] flex items-center justify-center text-sm text-slate-400 dark:text-slate-500">
-                Data pipeline pending integration.
-              </div>
+              <ResponsiveContainer width="100%" height={420}>{renderChart()}</ResponsiveContainer>
             )}
           </div>
         </div>
-
-        {/* Source note */}
-        {!loading && data.length > 0 && (
-          <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm text-slate-400 dark:text-slate-500">
-            <p>
-              <span className="font-medium text-slate-600 dark:text-slate-300">Methodology:</span>{' '}
-              OLS linear regression · 10-year trailing window · Floored at 0
-              {metadata.unit === '%' && ' · Capped at 100%'}
-            </p>
-            <Link to="/datasets" className="text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap">
-              ← Back to all datasets
-            </Link>
-          </div>
-        )}
       </div>
     </div>
   );

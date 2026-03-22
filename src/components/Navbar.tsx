@@ -10,12 +10,7 @@ export default function Navbar() {
 
         {/* ── Logo ── */}
         <Link to="/" className="flex items-center gap-3 shrink-0 group">
-          {/* Mark — JD, tall and readable */}
-          <div className="w-10 h-10 rounded-lg bg-blue-600 group-hover:bg-blue-500 transition-colors flex items-center justify-center shrink-0">
-            <span className="text-white font-bold text-base leading-none tracking-tight select-none">
-              JD
-            </span>
-          </div>
+        <img src="/jode-logo.svg" className="w-9 h-9" alt="JODE" />
           {/* Name */}
           <span className="text-base font-bold text-slate-900 dark:text-white tracking-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
             Jordan Open Data Explorer
