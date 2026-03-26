@@ -22,12 +22,10 @@ const COLORBLIND_COLORS = ['#0072B2', '#009E73', '#D55E00', '#CC79A7', '#F0E442'
 
 const COMPARISON_ENTITIES: Record<string, string[]> = {
   world: ['World'],
-  mena: ['Middle East & North Africa', 'Arab World', 'Middle East and North Africa'],
 };
 
 const COMPARISON_DISPLAY: Record<string, string> = {
   world: 'World',
-  mena: 'MENA',
 };
 
 const TRC_JORDAN_DATA: Record<number, number> = {

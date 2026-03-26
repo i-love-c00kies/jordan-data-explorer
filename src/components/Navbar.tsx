@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { to: '/overview', label: 'Overview' },
   { to: '/datasets', label: 'Datasets' },
   { to: '/correlations', label: 'Correlations' },
+  { to: '/scenarios', label: 'Scenarios' },
   { to: '/stories', label: 'Stories' },
 ];
 
