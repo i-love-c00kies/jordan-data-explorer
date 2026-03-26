@@ -38,7 +38,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     if (validPayload.length === 0) return null;
   
     return (
-      <div className="pointer-events-none bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-3 min-w-[260px] max-w-[350px] text-sm z-50">
+      <div className="pointer-events-none bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-3 min-w-[180px] max-w-[280px] text-sm z-50">
         <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-slate-100 dark:border-slate-800">
           <span className="font-bold text-slate-900 dark:text-white">Year: {label}</span>
         </div>
@@ -390,7 +390,7 @@ export default function CompareView() {
               tickLine={false} 
               axisLine={false}
               domain={['auto', 'auto']}
-              width={70} 
+              width={55} 
             />
           );
         })}
@@ -505,8 +505,7 @@ export default function CompareView() {
             </div>
           )}
 
-          {/* Changed height from fixed 420px to a taller, responsive height */}
-          <div className="p-4 pt-2 h-[550px] md:h-[650px] w-full flex flex-col">
+          <div className="p-4 pt-2 h-[300px] sm:h-[420px] md:h-[550px] lg:h-[650px] w-full flex flex-col">
             {loading ? (
               <div className="h-full w-full flex flex-col items-center justify-center gap-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg animate-pulse">
                 <p className="text-sm text-slate-400 dark:text-slate-500">Merging datasets...</p>

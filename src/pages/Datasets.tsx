@@ -210,16 +210,18 @@ export default function Datasets() {
 
       {/* Floating Dock */}
       {compareIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 py-3 rounded-full shadow-2xl flex items-center gap-4 z-50 border border-slate-700 dark:border-slate-200">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-3 z-50 border border-slate-700 dark:border-slate-200 max-w-[calc(100vw-2rem)]">
           <span className="font-semibold text-sm whitespace-nowrap">
-            {compareIds.length} dataset{compareIds.length > 1 ? 's' : ''} selected
+            <span className="hidden sm:inline">{compareIds.length} dataset{compareIds.length > 1 ? 's' : ''} selected</span>
+            <span className="sm:hidden">{compareIds.length} selected</span>
           </span>
           <div className="w-px h-4 bg-slate-700 dark:bg-slate-300" />
           <button 
-            className="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap shadow-xl shadow-blue-500/20 flex items-center gap-2"
+            className="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap shadow-xl shadow-blue-500/20 flex items-center gap-1.5"
             onClick={() => navigate('/compare?ids=' + compareIds.join(','))}
           >
-            Launch Comparison Engine
+            <span className="hidden sm:inline">Launch Comparison Engine</span>
+            <span className="sm:hidden">Compare</span>
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
             </svg>

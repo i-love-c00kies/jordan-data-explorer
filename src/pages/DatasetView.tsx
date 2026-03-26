@@ -411,29 +411,30 @@ export default function DatasetView() {
       <div className="max-w-5xl mx-auto px-5 py-8">
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
           {!loading && data.length > 0 && (
-            <div className="flex items-center justify-between px-5 pt-5 pb-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-5 pb-1">
               <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
                 <span className="flex items-center gap-1.5"><span className="w-6 border-t-2 border-slate-300 dark:border-slate-600 inline-block" />Historical</span>
                 <span className="flex items-center gap-1.5"><span className="w-6 border-t-2 border-dashed border-amber-400 inline-block" />Projected</span>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 <ExportButton data={activeData} fileName={metadata.title || 'Dataset'} />
-
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-                {[['all', 'All time'], ['recent', 'Last 20 yrs']].map(([key, label]) => (
-                  <button key={key} onClick={() => setTimeFilter(key)} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${timeFilter === key ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>{label}</button>
-                ))}
-              </div>
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                  {[['all', 'All time'], ['recent', 'Last 20 yrs']].map(([key, label]) => (
+                    <button key={key} onClick={() => setTimeFilter(key)} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${timeFilter === key ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>{label}</button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
           <div className="p-4 pt-2">
-            {loading ? (
-              <div className="h-[420px] flex flex-col items-center justify-center gap-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg animate-pulse"><p className="text-sm text-slate-400 dark:text-slate-500">Loading data…</p></div>
-            ) : (
-              <ResponsiveContainer width="100%" height={420}>{renderChart()}</ResponsiveContainer>
-            )}
+            <div className="h-[280px] sm:h-[350px] md:h-[420px]">
+              {loading ? (
+                <div className="h-full flex flex-col items-center justify-center gap-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg animate-pulse"><p className="text-sm text-slate-400 dark:text-slate-500">Loading data…</p></div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">{renderChart()}</ResponsiveContainer>
+              )}
+            </div>
           </div>
         </div>
       </div>

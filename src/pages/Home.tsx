@@ -91,7 +91,7 @@ export default function Home() {
 
         {/* ── Hero ───────────────────────────────────────────────────────────── */}
         <section className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
-          <div className="max-w-6xl mx-auto px-5 py-20 md:py-28">
+          <div className="max-w-6xl mx-auto px-5 py-10 md:py-20 lg:py-28">
             <div className="max-w-3xl">
 
               <a
