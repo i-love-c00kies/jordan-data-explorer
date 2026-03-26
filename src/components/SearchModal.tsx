@@ -203,25 +203,25 @@ export default function SearchModal({ open, onClose }: Props) {
     const q = query.trim();
     if (!q) return PAGES.map(p => ({ type: 'page', title: p.title, desc: p.desc, path: p.path, score: 0 }));
 
+    const queryWords = tokenize(q);
+    const expandedWords = expandQuery(queryWords);
+
+    const compareRows: SearchResult[] = [];
     const compareMatch = detectCompareQuery(q);
     if (compareMatch) {
       const [termA, termB] = compareMatch;
       const dsA = findDataset(termA);
       const dsB = findDataset(termB);
       if (dsA && dsB && dsA.id !== dsB.id) {
-        const compareResult: SearchResult = {
+        compareRows.push({
           type: 'compare',
           title: `Compare: ${dsA.title} vs ${dsB.title}`,
-          desc: `Open side-by-side comparison`,
+          desc: 'Open side-by-side comparison',
           path: `/compare?ids=${dsA.id},${dsB.id}`,
           score: 1000,
-        };
-        return [compareResult];
+        });
       }
     }
-
-    const queryWords = tokenize(q);
-    const expandedWords = expandQuery(queryWords);
 
     const scoredDatasets: SearchResult[] = [];
     for (const d of CATALOG_DATA) {
@@ -247,7 +247,7 @@ export default function SearchModal({ open, onClose }: Props) {
       })
       .map(p => ({ type: 'page', title: p.title, desc: p.desc, path: p.path, score: 50 }));
 
-    return [...matchedPages, ...scoredDatasets.slice(0, 8)];
+    return [...compareRows, ...matchedPages, ...scoredDatasets.slice(0, 8)];
   }, [query]);
 
   useEffect(() => { setActiveIdx(0); }, [results]);
