@@ -27,11 +27,7 @@ export default function Navbar({ onSearchOpen }: NavbarProps) {
 
       <div className="max-w-7xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-2.5 shrink-0" onClick={() => setMenuOpen(false)}>
-          <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22" />
-            </svg>
-          </div>
+          <img src="/jode-logo.svg" alt="JODE" className="w-7 h-7 rounded-lg" />
           <span className="text-[15px] font-semibold text-slate-900 dark:text-white tracking-tight">JODE</span>
         </Link>
 
