@@ -346,7 +346,7 @@ export default function Scenarios() {
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#1e293b' : '#f1f5f9'} />
                           <XAxis dataKey="year" tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
                           <YAxis tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 10 }} tickLine={false} axisLine={false} width={55} />
-                          <Tooltip contentStyle={tooltipStyle} formatter={(v) => [typeof v === 'number' ? formatVal(v) : v]} />
+                          <Tooltip contentStyle={tooltipStyle} formatter={(v) => (typeof v === 'number' ? formatVal(v) : String(v))} />
                           <ReferenceLine x={projSeries[projSeries.length - 1].year} stroke={isDark ? '#475569' : '#cbd5e1'} strokeDasharray="2 2" />
                           <Line type="monotone" dataKey="historical" name="Historical" stroke="#3b82f6" strokeWidth={2} dot={false} connectNulls={false} />
                           <Line type="monotone" dataKey="custom" name="Custom" stroke="#3b82f6" strokeWidth={2.5} strokeDasharray="5 3" dot={false} connectNulls={false} />
