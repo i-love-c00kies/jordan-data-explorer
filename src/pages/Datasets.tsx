@@ -9,7 +9,10 @@ export default function Datasets() {
   const navigate = useNavigate();
   const [active, setActive] = useState('All');
   const [searchParams, setSearchParams] = useSearchParams();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => {
+    const q = searchParams.get('q');
+    return q || '';
+  });
 
   // Extract currently compared IDs directly from URL
   const compareIds = useMemo(() => {

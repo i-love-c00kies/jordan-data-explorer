@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 // ─── Marquee sources ──────────────────────────────────────────────────────────
 
@@ -59,6 +60,18 @@ const FEATURES = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Home() {
+  const navigate = useNavigate();
+  const [heroSearch, setHeroSearch] = useState('');
+
+  const handleHeroSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (heroSearch.trim()) {
+      navigate(`/datasets?q=${encodeURIComponent(heroSearch.trim())}`);
+    } else {
+      navigate('/datasets');
+    }
+  };
+
   return (
     <>
       <style>{`
@@ -128,6 +141,24 @@ export default function Home() {
                 indicators — spanning over 175 years of historical data with
                 forward projections built in.
               </p>
+
+              <form onSubmit={handleHeroSearch} className="flex items-center gap-2 mb-6 max-w-md">
+                <div className="relative flex-1">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Search datasets (e.g. GDP, health, CO2...)"
+                    value={heroSearch}
+                    onChange={(e) => setHeroSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  />
+                </div>
+                <button type="submit" className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg transition-colors shrink-0">
+                  Search
+                </button>
+              </form>
 
               <div className="flex flex-wrap gap-3">
                 <Link

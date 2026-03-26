@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, Legend, ReferenceLine } from 'recharts';
 import Papa from 'papaparse';
 import { useTheme } from '../context/ThemeContext';
 import { calculateAdvancedProjection } from '../utils/projectionEngine';
 import { OWID_CONFIG } from '../constants/datasets';
+import { HISTORICAL_EVENTS } from '../constants/events';
 
 // ─── Shared Configuration ─────────────────────────────────────────────────────
 
@@ -139,6 +140,7 @@ export default function CompareView() {
   
   // NEW: State to track which lines are toggled off
   const [hiddenLines, setHiddenLines] = useState<Set<string>>(new Set());
+  const [showEvents, setShowEvents] = useState(true);
 
   const compareIds = useMemo(() => {
     return searchParams.get('ids')?.split(',').filter(Boolean) || [];
@@ -395,6 +397,20 @@ export default function CompareView() {
           );
         })}
         <Tooltip content={<CustomTooltip />} cursor={{ stroke: brushStroke, strokeWidth: 1 }} />
+
+        {showEvents && HISTORICAL_EVENTS.filter(e => {
+          const years = chartData.map((d: any) => d.year);
+          return years.includes(e.year);
+        }).map(event => (
+          <ReferenceLine
+            key={event.year}
+            x={event.year}
+            stroke={event.color}
+            strokeDasharray="4 4"
+            strokeOpacity={0.6}
+            label={{ value: event.label, position: 'top', fill: isDark ? '#94a3b8' : '#64748b', fontSize: 9 }}
+          />
+        ))}
         
         {chartLines.map((line) => {
           const isHidden = hiddenLines.has(line.key);
@@ -492,10 +508,16 @@ export default function CompareView() {
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
           
           {!loading && data.length > 0 && (
-            <div className="flex items-center justify-between px-5 pt-5 pb-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-5 pb-1">
               <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
                 <span className="flex items-center gap-1.5"><span className="w-6 border-t-2 border-slate-300 dark:border-slate-600 inline-block" />Historical</span>
                 <span className="flex items-center gap-1.5"><span className="w-6 border-t-2 border-dashed border-amber-400 inline-block" />Projected</span>
+                <button
+                  onClick={() => setShowEvents(e => !e)}
+                  className={`ml-1 px-2 py-0.5 text-[11px] font-medium rounded-md border transition-all ${showEvents ? 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'}`}
+                >
+                  Events
+                </button>
               </div>
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                 {[['all', 'All time'], ['recent', 'Last 25 yrs']].map(([key, label]) => (

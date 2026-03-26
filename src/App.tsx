@@ -2,9 +2,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import Footer from './components/Footer';
 import Navbar from './components/Navbar';
+import OnboardingTour from './components/OnboardingTour';
 import { ThemeProvider } from './context/ThemeContext';
 
-// 1. Lazy load the pages
 const Home = lazy(() => import('./pages/Home.tsx'));
 const Datasets = lazy(() => import('./pages/Datasets.tsx'));
 const DatasetView = lazy(() => import('./pages/DatasetView.tsx'));
@@ -35,6 +35,7 @@ export default function App() {
             </div>
           </Suspense>
           <Footer />
+          <OnboardingTour />
         </div>
       </Router>
     </ThemeProvider>

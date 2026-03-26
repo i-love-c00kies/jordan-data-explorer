@@ -1,34 +1,32 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, Legend } from 'recharts';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, Legend, ReferenceLine } from 'recharts';
 import Papa from 'papaparse';
 import { useTheme } from '../context/ThemeContext';
 import ExportButton from '../components/ExportButton';
+import DownloadChartButton from '../components/DownloadChartButton';
+import EmbedButton from '../components/EmbedButton';
+import InsightsPanel from '../components/InsightsPanel';
+import RelatedDatasets from '../components/RelatedDatasets';
+import SourceDrawer from '../components/SourceDrawer';
 import { calculateAdvancedProjection } from '../utils/projectionEngine';
 import { OWID_CONFIG } from '../constants/datasets';
+import { HISTORICAL_EVENTS } from '../constants/events';
 
-// ─── Shared Configuration ─────────────────────────────────────────────────────
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
-// This is the actual historical data from Jordan's TRC (Telecommunications Regulatory Commission)
-const TRC_JORDAN_DATA: Record<number, number> = {
-  2010: 38.0,
-  2011: 44.8,
-  2012: 63.1,
-  2013: 73.0,
-  2014: 76.0,
-  2015: 80.5,
-  2016: 84.4,
-  2017: 87.0,
-  2018: 88.8,
-  2019: 90.5,
-  2020: 91.0,
-  2021: 92.3,
-  2022: 94.1,
-  2023: 95.8
+const COLORBLIND_COLORS = ['#0072B2', '#009E73', '#D55E00', '#CC79A7', '#F0E442', '#56B4E9', '#E69F00'];
+
+const COMPARISON_ENTITIES: Record<string, string> = {
+  world: 'World',
+  mena: 'Middle East & North Africa (WB)',
 };
 
-// ─── Custom Tooltip ───────────────────────────────────────────────────────────
+const TRC_JORDAN_DATA: Record<number, number> = {
+  2010: 38.0, 2011: 44.8, 2012: 63.1, 2013: 73.0, 2014: 76.0,
+  2015: 80.5, 2016: 84.4, 2017: 87.0, 2018: 88.8, 2019: 90.5,
+  2020: 91.0, 2021: 92.3, 2022: 94.1, 2023: 95.8
+};
 
 const CustomTooltip = ({ active, payload, label, unit }: any) => {
   if (!payload || !Array.isArray(payload)) return null;
@@ -82,8 +80,6 @@ const CustomTooltip = ({ active, payload, label, unit }: any) => {
     </div>
   );
 };
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 
 const getValueKeysForDataset = (datasetId: string | undefined): string[] | null => {
   if (datasetId === '1') return ['Total', 'TRC Data'];
@@ -148,9 +144,11 @@ export default function DatasetView() {
   const { id } = useParams();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [data, setData]         = useState<any[]>([]);
-  const [loading, setLoading]   = useState(true);
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [metadata, setMetadata] = useState({
     title: '',
     description: '',
@@ -158,7 +156,30 @@ export default function DatasetView() {
     unit: '',
     colors: ['#2563eb'] as string[],
   });
-  const [timeFilter, setTimeFilter] = useState('all');
+  const [showEvents, setShowEvents] = useState(true);
+  const [compareEntities, setCompareEntities] = useState<string[]>([]);
+  const [comparisonData, setComparisonData] = useState<Record<string, Record<number, number>>>({});
+  const [useColorblind, setUseColorblind] = useState(() => localStorage.getItem('jode-colorblind') === 'true');
+
+  const timeFilter = searchParams.get('range') || 'all';
+  const setTimeFilter = (val: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (val === 'all') next.delete('range');
+      else next.set('range', val);
+      return next;
+    });
+  };
+
+  const palette = useColorblind ? COLORBLIND_COLORS : COLORS;
+
+  const toggleColorblind = () => {
+    setUseColorblind(prev => {
+      const next = !prev;
+      localStorage.setItem('jode-colorblind', String(next));
+      return next;
+    });
+  };
 
   const activeData = useMemo(() => {
     if (timeFilter === 'recent') return data.slice(-20);
@@ -170,27 +191,27 @@ export default function DatasetView() {
     if (!conf) return null;
     if (id === '1') {
       return [
-        { key: 'Total', color: conf.colors?.[1] ?? COLORS[0], isMain: true },
-        { key: 'TRC Data', color: '#3b82f6', isMain: false },
+        { key: 'Total', color: useColorblind ? palette[0] : (conf.colors?.[1] ?? palette[0]), isMain: true },
+        { key: 'TRC Data', color: useColorblind ? palette[1] : '#3b82f6', isMain: false },
       ];
     }
     if (id === '2') {
       return [
-        { key: 'Total', color: conf.colors?.[0] ?? COLORS[0], isMain: true },
-        { key: 'Male', color: '#3b82f6', isMain: false },
-        { key: 'Female', color: '#ec4899', isMain: false },
+        { key: 'Total', color: useColorblind ? palette[0] : (conf.colors?.[0] ?? palette[0]), isMain: true },
+        { key: 'Male', color: useColorblind ? palette[1] : '#3b82f6', isMain: false },
+        { key: 'Female', color: useColorblind ? palette[2] : '#ec4899', isMain: false },
       ];
     }
     if (id === '3') {
       return [
-        { key: 'Total Emissions', color: conf.colors?.[0] ?? COLORS[0], isMain: true },
-        { key: 'Energy Sector', color: '#f59e0b', isMain: false },
-        { key: 'Transport Sector', color: '#ef4444', isMain: false },
-        { key: 'Industry Sector', color: '#6366f1', isMain: false },
+        { key: 'Total Emissions', color: useColorblind ? palette[0] : (conf.colors?.[0] ?? palette[0]), isMain: true },
+        { key: 'Energy Sector', color: useColorblind ? palette[3] : '#f59e0b', isMain: false },
+        { key: 'Transport Sector', color: useColorblind ? palette[2] : '#ef4444', isMain: false },
+        { key: 'Industry Sector', color: useColorblind ? palette[4] : '#6366f1', isMain: false },
       ];
     }
     return null;
-  }, [id]);
+  }, [id, useColorblind, palette]);
 
   const chartData = useMemo(() => {
     if (!activeData || activeData.length === 0) return [];
@@ -198,6 +219,11 @@ export default function DatasetView() {
     const valueKeys =
       getValueKeysForDataset(id) ??
       Object.keys(activeData[0] || {}).filter((k) => k !== 'label');
+
+    const allKeys = [...valueKeys];
+    compareEntities.forEach(entity => {
+      allKeys.push(COMPARISON_ENTITIES[entity] || entity);
+    });
 
     return activeData.map((d, index) => {
       const isProj = String(d.label).includes('Proj');
@@ -207,14 +233,26 @@ export default function DatasetView() {
         String(activeData[index + 1].label).includes('Proj');
 
       const newObj: any = { label: d.label };
-      valueKeys.forEach((key) => {
+      allKeys.forEach((key) => {
         const v = d[key];
-        newObj[`${key}_actual`] = !isProj ? v : null;
-        newObj[`${key}_projected`] = isProj || isBridgePoint ? v : null;
+        if (v !== undefined) {
+          newObj[`${key}_actual`] = !isProj ? v : null;
+          newObj[`${key}_projected`] = isProj || isBridgePoint ? v : null;
+        }
       });
+
+      const year = parseInt(String(d.label).replace(' (Proj)', ''), 10);
+      compareEntities.forEach(entity => {
+        const entityName = COMPARISON_ENTITIES[entity];
+        const val = comparisonData[entity]?.[year];
+        if (val != null) {
+          newObj[`${entityName}_actual`] = !isProj ? val : null;
+        }
+      });
+
       return newObj;
     });
-  }, [activeData, id]);
+  }, [activeData, id, compareEntities, comparisonData]);
 
   useEffect(() => {
     setLoading(true);
@@ -229,7 +267,6 @@ export default function DatasetView() {
     });
 
     const valueKeys = getValueKeysForDataset(id || undefined);
-    // Updated cache key to clear out old multiplier data
     const cacheKey = `jode-data-TITAN-v4.6-${id || '4'}`;
     const cachedData = sessionStorage.getItem(cacheKey);
     if (cachedData) {
@@ -264,7 +301,6 @@ export default function DatasetView() {
 
           if (id === '1') {
             rowData.Total = baseValue;
-            // RESTORED: Real TRC Local Data Lookup
             rowData['TRC Data'] = TRC_JORDAN_DATA[year] || null;
           } else if (id === '2') {
             rowData.Total = baseValue;
@@ -290,6 +326,57 @@ export default function DatasetView() {
       error: () => setLoading(false),
     });
   }, [id]);
+
+  useEffect(() => {
+    if (compareEntities.length === 0) {
+      setComparisonData({});
+      return;
+    }
+
+    const config = OWID_CONFIG[id || '4'];
+    if (!config) return;
+
+    compareEntities.forEach(entity => {
+      const entityName = COMPARISON_ENTITIES[entity];
+      Papa.parse(`https://ourworldindata.org/grapher/${config.slug}.csv`, {
+        download: true,
+        header: true,
+        complete: (results) => {
+          const entityData = results.data.filter((row: any) => row['Entity'] === entityName);
+          const mapped: Record<number, number> = {};
+          const maxValue = Math.max(...data.map(d => d.Total || d['Total Emissions'] || 0));
+          let scaleDivider = 1;
+          if (maxValue >= 1000000 && id !== '5') scaleDivider = 1000000;
+
+          entityData.forEach((row: any) => {
+            const keys = Object.keys(row);
+            const valueKey = keys.find(k => k !== 'Entity' && k !== 'Code' && k !== 'Year' && k !== '');
+            const val = parseFloat(row[valueKey || '']);
+            const year = parseInt(row['Year'], 10);
+            if (!isNaN(val) && year >= 1850) {
+              mapped[year] = Math.round((val / scaleDivider) * 100) / 100;
+            }
+          });
+
+          setComparisonData(prev => ({ ...prev, [entity]: mapped }));
+        },
+      });
+    });
+  }, [compareEntities, id, data]);
+
+  const toggleEntity = (entity: string) => {
+    setCompareEntities(prev =>
+      prev.includes(entity) ? prev.filter(e => e !== entity) : [...prev, entity]
+    );
+  };
+
+  const visibleEvents = useMemo(() => {
+    if (!showEvents || !activeData.length) return [];
+    const years = activeData.map(d => parseInt(String(d.label).replace(' (Proj)', ''), 10));
+    const minYear = Math.min(...years);
+    const maxYear = Math.max(...years);
+    return HISTORICAL_EVENTS.filter(e => e.year >= minYear && e.year <= maxYear);
+  }, [showEvents, activeData]);
 
   const renderChart = () => {
     if (chartData.length < 2) return null;
@@ -327,10 +414,21 @@ export default function DatasetView() {
         <Tooltip content={<CustomTooltip unit={metadata.unit} />} cursor={{ stroke: isDark ? '#334155' : '#e2e8f0', strokeWidth: 1 }} />
         <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px', color: isDark ? '#64748b' : '#94a3b8' }} iconType="circle" iconSize={8} />
 
+        {visibleEvents.map(event => (
+          <ReferenceLine
+            key={event.year}
+            x={String(event.year)}
+            stroke={event.color}
+            strokeDasharray="4 4"
+            strokeOpacity={0.6}
+            label={{ value: event.label, position: 'top', fill: isDark ? '#94a3b8' : '#64748b', fontSize: 9 }}
+          />
+        ))}
+
         {keysForChart.map((key, index) => {
           const def = defByKey?.[key];
           
-          const color = def?.color ?? metadata.colors[index % Math.max(metadata.colors.length, 1)];
+          const color = def?.color ?? (useColorblind ? palette[index % palette.length] : metadata.colors[index % Math.max(metadata.colors.length, 1)]);
           const isMain = def ? def.isMain : true;
           const strokeW = isMain ? 3 : 2;
           const strokeOpacity = isMain ? 1 : 0.8;
@@ -362,6 +460,25 @@ export default function DatasetView() {
                 legendType="none"
               />
             </React.Fragment>
+          );
+        })}
+
+        {compareEntities.map((entity, idx) => {
+          const entityName = COMPARISON_ENTITIES[entity];
+          const color = useColorblind ? palette[(keysForChart.length + idx) % palette.length] : ['#94a3b8', '#a78bfa'][idx % 2];
+          return (
+            <Line
+              key={entityName}
+              type="monotone"
+              dataKey={`${entityName}_actual`}
+              name={entityName}
+              stroke={color}
+              strokeWidth={1.5}
+              strokeOpacity={0.7}
+              strokeDasharray="2 2"
+              dot={false}
+              connectNulls
+            />
           );
         })}
 
@@ -408,8 +525,9 @@ export default function DatasetView() {
           </div>
         </div>
       </div>
+
       <div className="max-w-5xl mx-auto px-5 py-8">
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden" ref={chartRef}>
           {!loading && data.length > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-5 pb-1">
               <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
@@ -419,6 +537,8 @@ export default function DatasetView() {
 
               <div className="flex items-center gap-2 flex-wrap">
                 <ExportButton data={activeData} fileName={metadata.title || 'Dataset'} />
+                <DownloadChartButton chartRef={chartRef} fileName={metadata.title || 'Dataset'} />
+                <EmbedButton datasetId={id || '4'} />
                 <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                   {[['all', 'All time'], ['recent', 'Last 20 yrs']].map(([key, label]) => (
                     <button key={key} onClick={() => setTimeFilter(key)} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${timeFilter === key ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>{label}</button>
@@ -427,6 +547,40 @@ export default function DatasetView() {
               </div>
             </div>
           )}
+
+          {!loading && data.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 px-5 pt-3 pb-1">
+              <button
+                onClick={() => setShowEvents(e => !e)}
+                className={`px-2.5 py-1 text-[11px] font-medium rounded-md border transition-all ${showEvents ? 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'}`}
+              >
+                {showEvents ? 'Hide' : 'Show'} Events
+              </button>
+
+              <div className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
+
+              {Object.entries(COMPARISON_ENTITIES).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => toggleEntity(key)}
+                  className={`px-2.5 py-1 text-[11px] font-medium rounded-md border transition-all ${compareEntities.includes(key) ? 'bg-violet-50 dark:bg-violet-950/50 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'}`}
+                >
+                  vs {label.replace(' (WB)', '')}
+                </button>
+              ))}
+
+              <div className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
+
+              <button
+                onClick={toggleColorblind}
+                className={`px-2.5 py-1 text-[11px] font-medium rounded-md border transition-all ${useColorblind ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'}`}
+                title="Toggle colorblind-friendly palette"
+              >
+                Accessible Colors
+              </button>
+            </div>
+          )}
+
           <div className="p-4 pt-2">
             <div className="h-[280px] sm:h-[350px] md:h-[420px]">
               {loading ? (
@@ -438,6 +592,14 @@ export default function DatasetView() {
           </div>
         </div>
       </div>
+
+      <SourceDrawer datasetId={id || '4'} />
+
+      {!loading && data.length > 0 && (
+        <InsightsPanel data={data} title={pageTitle} unit={metadata.unit} />
+      )}
+
+      <RelatedDatasets currentId={id || '4'} />
     </div>
   );
 }
