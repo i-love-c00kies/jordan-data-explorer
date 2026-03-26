@@ -109,7 +109,7 @@ export default function Datasets() {
           </div>
 
           {/* Category filter */}
-          <div className="flex gap-1 overflow-x-auto scrollbar-none pb-0 -mb-px">
+          <div className="flex gap-1 overflow-x-auto scrollbar-none pb-0 -mb-px bg-white dark:bg-slate-950">
             {ALL_CATEGORIES.map(cat => {
               const isActive = active === cat;
               const color = cat !== 'All' ? CATEGORY_COLORS[cat] : null;
