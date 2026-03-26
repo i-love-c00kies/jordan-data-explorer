@@ -1,0 +1,26 @@
+#3 - Expand Data Stories
+What & Why
+Currently only 3 stories exist (Digital Leap, Health Transformation, Environmental Crossroads). With 100 datasets available, there's material for many more compelling narratives. Adding 6 new stories gives users richer guided explorations of Jordan's data across economy, demographics, governance, and more.
+
+Done looks like
+Stories page shows 9 total stories (3 existing + 6 new)
+Each new story has 3-4 chapters with narrative text, animated chart, and highlight badge
+Stories are organized with visual variety (different color themes)
+All chart data loads correctly from OWID sources
+Stories work in both light and dark mode
+Story cards on the listing page show clear previews
+Out of scope
+Interactive quiz or assessment features within stories
+User-generated stories
+Video or audio narration
+Tasks
+Economic Transformation story — Jordan's GDP journey from agrarian economy to services-led growth, covering GDP per capita, trade, FDI, and remittances (4 chapters).
+The Refugee Burden story — How hosting millions of refugees shaped Jordan's demographics, infrastructure, and economy. Uses refugee population, population growth, water scarcity, and unemployment data (3 chapters).
+Energy Independence story — Jordan's shift from 97% energy imports to growing renewable capacity, covering primary energy, solar share, electricity generation, and CO2 per capita (4 chapters).
+Youth & Education story — Declining fertility, rising education enrollment, but persistent youth unemployment (NEET). Uses fertility rate, school enrollment, youth NEET, and female labor force data (3 chapters).
+Water: The Invisible Crisis story — Jordan as the 2nd most water-scarce country on Earth. Covers freshwater withdrawal, population growth, agricultural land, and climate data (3 chapters).
+Urbanization & Infrastructure story — How Jordan went from rural to 93% urban, covering urban population share, electricity access, infrastructure spending, and mobile connectivity (3 chapters).
+Add story color themes — Add new color variants (cyan, indigo, pink) to the story color system for visual variety.
+Relevant files
+src/pages/Stories.tsx
+src/constants/datasets.ts

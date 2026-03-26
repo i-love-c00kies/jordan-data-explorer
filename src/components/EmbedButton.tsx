@@ -1,12 +1,16 @@
 import { useState } from 'react';
+import { useToast } from '../context/ToastContext';
 
 export default function EmbedButton({ datasetId }: { datasetId: string }) {
   const [showModal, setShowModal] = useState(false);
+  const { showToast } = useToast();
   const embedUrl = `${window.location.origin}/datasets/${datasetId}`;
   const embedCode = `<iframe src="${embedUrl}" width="100%" height="500" style="border:none;border-radius:12px;" title="JODE Chart"></iframe>`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(embedCode);
+    setShowModal(false);
+    showToast('Embed code copied to clipboard', 'success');
   };
 
   return (

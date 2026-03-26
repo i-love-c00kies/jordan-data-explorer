@@ -1,22 +1,23 @@
 import Papa from 'papaparse';
+import { useToast } from '../context/ToastContext';
 
 export default function ExportButton({ data, fileName }: { data: any[], fileName: string }) {
+  const { showToast } = useToast();
+
   const handleExport = () => {
     if (!data || data.length === 0) return;
 
-    // Convert JSON to CSV
     const csv = Papa.unparse(data);
-    
-    // Create a memory blob and trigger download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', `JODE_${fileName.replace(/\s+/g, '_')}.csv`);
-    
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('CSV exported', 'success');
   };
 
   return (

@@ -92,7 +92,7 @@ export default function Home() {
             <h1 className="text-[clamp(2rem,5vw,3.5rem)] font-bold tracking-tight leading-[1.1] mb-5 animate-fade-in-delay-1">
               <span className="text-slate-900 dark:text-white">Jordan's data,</span>
               <br />
-              <span className="bg-gradient-to-r from-blue-600 to-violet-600 dark:from-blue-400 dark:to-violet-400 bg-clip-text text-transparent">visualized.</span>
+              <span className="text-slate-900 dark:text-white">visualized.</span>
             </h1>
 
             <p className="text-base md:text-lg text-slate-500 dark:text-slate-400 leading-relaxed mb-8 max-w-lg animate-fade-in-delay-2">

@@ -1,4 +1,5 @@
 import { toPng } from 'html-to-image';
+import { useToast } from '../context/ToastContext';
 
 interface DownloadChartButtonProps {
   chartRef: React.RefObject<HTMLDivElement | null>;
@@ -6,6 +7,8 @@ interface DownloadChartButtonProps {
 }
 
 export default function DownloadChartButton({ chartRef, fileName }: DownloadChartButtonProps) {
+  const { showToast } = useToast();
+
   const handleDownload = async () => {
     if (!chartRef.current) return;
 
@@ -18,6 +21,7 @@ export default function DownloadChartButton({ chartRef, fileName }: DownloadChar
       link.download = `JODE_${fileName.replace(/\s+/g, '_')}.png`;
       link.href = dataUrl;
       link.click();
+      showToast('Chart saved as PNG', 'success');
     } catch (err) {
       console.error('Failed to export chart', err);
     }

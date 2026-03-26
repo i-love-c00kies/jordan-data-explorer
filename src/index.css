@@ -89,3 +89,22 @@ button:focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
+
+@keyframes nav-progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-nav-progress {
+  animation: nav-progress 1.2s ease-in-out infinite;
+  width: 60%;
+}
+
+@media print {
+  nav, footer, .no-print { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .rounded-xl, .rounded-lg { border-radius: 0 !important; }
+  .shadow-sm, .shadow-lg, .shadow-2xl { box-shadow: none !important; }
+  .border { border-color: #e2e8f0 !important; }
+  .dark { color-scheme: light; }
+}

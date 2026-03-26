@@ -1,0 +1,33 @@
+#2 - Data Layer & Performance Optimization
+What & Why
+With 100 datasets, the current approach of firing individual CSV requests per dataset will cause massive performance problems. Overview, Quality, and Anomalies pages would each fire 100+ network requests simultaneously. This task creates a centralized data service, optimizes rendering for large lists, and improves the overall user experience with better loading states.
+
+Done looks like
+A centralized DataService singleton manages all OWID data fetching and caching
+Pages that need all datasets (Overview, Quality, Anomalies) share a single data cache instead of each fetching independently
+Overview page uses lightweight SVG sparklines instead of full Recharts LineChart components (reduces DOM nodes by ~80%)
+Quality and Anomalies pages use virtual scrolling for the results list (handles 100+ items smoothly)
+All pages show skeleton loading animations instead of plain spinners
+Correlation matrix only loads a user-selected subset (not all 100 datasets)
+Page load time for Overview is under 5 seconds even with 100 datasets
+Bundle size does not grow significantly — Recharts imports are optimized
+Out of scope
+Adding new datasets (separate task)
+UI redesign of existing pages
+New features
+Tasks
+Create centralized DataService — Build a singleton service in src/services/dataService.ts that handles fetching, parsing, and caching OWID CSVs. All pages should use this instead of inline Papa.parse calls. Use a Map-based in-memory cache with sessionStorage as fallback.
+Batch fetch with concurrency control — Implement a queue that limits concurrent CSV requests to 6 at a time (browser connection limit) instead of firing all 100 simultaneously. Show progressive loading as datasets complete.
+Lightweight sparklines for Overview — Replace the 100 Recharts <LineChart> instances on the Overview page with simple inline SVG polylines. This dramatically reduces DOM complexity and memory usage.
+Virtual scrolling for long lists — Add windowed rendering to Quality and Anomalies result lists so only visible items are in the DOM.
+Skeleton loading states — Replace all spinner-only loading states with skeleton card animations that match the shape of the content being loaded.
+Optimize Correlations page — Let users pick which datasets to include in the correlation matrix (default to 15) instead of computing all pairs.
+Lazy-load chart libraries — Ensure Recharts is only loaded when a chart page is actually visited, not bundled into the initial load.
+Relevant files
+src/pages/Overview.tsx
+src/pages/Quality.tsx
+src/pages/Anomalies.tsx
+src/pages/Correlations.tsx
+src/pages/DatasetView.tsx
+src/pages/CompareView.tsx
+src/App.tsx

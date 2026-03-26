@@ -1,0 +1,28 @@
+#1 - Expand to 100 Datasets
+What & Why
+Remove Literacy Rate (ID 11) and Poverty Rate (ID 25), then add 72 new OWID datasets to bring the total from 28 to 100. This gives the platform comprehensive coverage across all major domains relevant to Jordan. New datasets should span: trade & finance (FDI, exports, imports, trade balance, debt, tax revenue, GINI), governance (military spending, corruption perceptions, government effectiveness, political stability), health (maternal mortality, hospital beds, physicians, vaccination, smoking, obesity, tuberculosis, sanitation, handwashing), education (primary/secondary/tertiary enrollment, education spending, mean years of schooling), environment (methane, nitrous oxide, air pollution PM2.5, forest area, CO2 per capita, renewable energy consumption, waste), technology (broadband, R&D spending, patents, secure internet servers), and demographics (median age, dependency ratio, migration, marriage age, gender inequality index).
+
+Done looks like
+Literacy Rate and Poverty Rate no longer appear anywhere in the app
+100 datasets are listed in the Datasets catalog page
+All 100 load successfully on the Overview sparkline dashboard
+Home page text updated to say "100 indicators" instead of "30"
+New category colors added if new categories are introduced (e.g., "Governance", "Trade")
+Each new dataset has a valid OWID slug, proper title, unit, description, source, and color
+All existing special-case logic for IDs 1, 2, 3 is preserved (IDs are NOT renumbered)
+New datasets use IDs 31-102 (skipping removed 11 and 25)
+Out of scope
+Performance optimization of data loading (separate task)
+New stories for these datasets (separate task)
+Changes to the projection engine or chart rendering logic
+Tasks
+Remove Literacy Rate and Poverty Rate — Delete entries for IDs 11 and 25 from OWID_CONFIG. Clean up any direct references to these IDs across the codebase.
+Research and validate 72 OWID slugs — Find valid Our World in Data grapher slugs that have Jordan data. Test each slug URL is accessible. Organize into categories.
+Add new dataset entries — Add 72 new entries to OWID_CONFIG with IDs 31-102, each with slug, title, unit, detail, category, source, description, and colors.
+Add new category colors — If new categories like "Governance" or "Trade" are introduced, add entries to CATEGORY_COLORS.
+Update Home page copy — Change "30 indicators" and "30 Datasets" references to "100" throughout Home.tsx and any other pages with hardcoded counts.
+Relevant files
+src/constants/datasets.ts
+src/pages/Home.tsx
+src/pages/DatasetView.tsx:115-120
+src/pages/DatasetView.tsx:220-245

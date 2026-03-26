@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import Papa from 'papaparse';
 import { OWID_CONFIG, CATALOG_DATA } from '../constants/datasets';
 import { assessDataQuality } from '../utils/statistics';
+import { dataService } from '../services/dataService';
 import type { DataQualityScore } from '../utils/statistics';
 
 interface DatasetQuality {
@@ -15,43 +15,28 @@ interface DatasetQuality {
 export default function Quality() {
   const [datasets, setDatasets] = useState<DatasetQuality[]>([]);
   const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
   const [sortBy, setSortBy] = useState<'overall' | 'completeness' | 'freshness' | 'coverage'>('overall');
 
   useEffect(() => {
-    const fetchAll = async () => {
-      const promises = CATALOG_DATA.map(ds => {
+    const ids = CATALOG_DATA.map(d => d.id);
+    dataService.fetchAll(ids, (done, total) => {
+      setProgress(Math.round((done / total) * 100));
+    }).then(allData => {
+      const results: DatasetQuality[] = [];
+      for (const ds of CATALOG_DATA) {
         const config = OWID_CONFIG[String(ds.id)];
-        if (!config) return Promise.resolve(null);
-
-        return new Promise<DatasetQuality | null>((resolve) => {
-          Papa.parse(`https://ourworldindata.org/grapher/${config.slug}.csv`, {
-            download: true, header: true,
-            complete: (res) => {
-              try {
-                const jordanData = res.data.filter((row: any) => row['Entity'] === 'Jordan');
-                const keys = jordanData.length > 0 ? Object.keys(jordanData[0] as object) : [];
-                const valueKey = keys.find((k: string) => k !== 'Entity' && k !== 'Code' && k !== 'Year' && k !== '');
-
-                const timeSeries = jordanData
-                  .map((row: any) => ({ year: parseInt(row['Year']), value: parseFloat(row[valueKey || '']) }))
-                  .filter((d: any) => !isNaN(d.year) && !isNaN(d.value))
-                  .sort((a: any, b: any) => a.year - b.year);
-
-                const quality = assessDataQuality(timeSeries);
-                resolve({ id: ds.id, title: ds.title, category: ds.category, quality });
-              } catch { resolve(null); }
-            },
-            error: () => resolve(null),
-          });
-        });
-      });
-
-      const results = await Promise.all(promises);
-      setDatasets(results.filter((r): r is DatasetQuality => r !== null));
+        if (!config) continue;
+        const series = allData.get(ds.id) || [];
+        if (series.length === 0) continue;
+        try {
+          const quality = assessDataQuality(series);
+          results.push({ id: ds.id, title: ds.title, category: ds.category, quality });
+        } catch {}
+      }
+      setDatasets(results);
       setLoading(false);
-    };
-
-    fetchAll();
+    });
   }, []);
 
   const sorted = [...datasets].sort((a, b) => b.quality[sortBy] - a.quality[sortBy]);
@@ -83,9 +68,11 @@ export default function Quality() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-6 h-6 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin dark:border-slate-700 dark:border-t-blue-400" />
-            <span className="ml-3 text-sm text-slate-500 dark:text-slate-400">Assessing quality...</span>
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="w-48 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
+            </div>
+            <span className="text-sm text-slate-500 dark:text-slate-400">Assessing {progress}% of datasets...</span>
           </div>
         ) : (
           <>

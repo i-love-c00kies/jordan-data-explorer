@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, Legend, ReferenceLine } from 'recharts';
+import { LineChart, BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, Legend, ReferenceLine, Cell } from 'recharts';
 import Papa from 'papaparse';
 import { useTheme } from '../context/ThemeContext';
+import { useToast } from '../context/ToastContext';
 import ExportButton from '../components/ExportButton';
 import DownloadChartButton from '../components/DownloadChartButton';
 import EmbedButton from '../components/EmbedButton';
@@ -171,12 +172,31 @@ const generateProjections = (
   return result;
 };
 
+function useFavorites(id: string | undefined) {
+  const [favorites, setFavorites] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem('jode-favorites') || '[]'); } catch { return []; }
+  });
+  const numId = parseInt(id || '0');
+  const isFavorite = favorites.includes(numId);
+  const toggle = () => {
+    setFavorites(prev => {
+      const next = prev.includes(numId) ? prev.filter(f => f !== numId) : [...prev, numId];
+      localStorage.setItem('jode-favorites', JSON.stringify(next));
+      return next;
+    });
+  };
+  return { isFavorite, toggle };
+}
+
 export default function DatasetView() {
   const { id } = useParams();
   const { theme } = useTheme();
+  const { showToast } = useToast();
   const isDark = theme === 'dark';
   const chartRef = useRef<HTMLDivElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isFavorite, toggle: toggleFavorite } = useFavorites(id);
+  const [showYoY, setShowYoY] = useState(false);
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -216,6 +236,19 @@ export default function DatasetView() {
     if (timeFilter === 'recent') return data.slice(-20);
     return data;
   }, [data, timeFilter]);
+
+  const yoyData = useMemo(() => {
+    const actual = activeData.filter(d => !String(d.label).includes('Proj'));
+    if (actual.length < 2) return [];
+    const mainKey = Object.keys(actual[0] || {}).find(k => k !== 'label') || 'Total';
+    return actual.slice(1).map((d, i) => {
+      const prev = actual[i];
+      const curr = d[mainKey];
+      const prevVal = prev[mainKey];
+      const change = (prevVal != null && prevVal !== 0) ? ((curr - prevVal) / Math.abs(prevVal)) * 100 : 0;
+      return { label: d.label, change: isNaN(change) ? 0 : Math.round(change * 10) / 10 };
+    });
+  }, [activeData]);
 
   const lineDefs = useMemo(() => {
     const conf = OWID_CONFIG[id || '4'];
@@ -609,15 +642,29 @@ export default function DatasetView() {
       <OnboardingTour />
       <div className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
         <div className="max-w-5xl mx-auto px-5 pt-8 pb-6">
-          <Link to="/datasets" className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mb-6">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
-            All datasets
-          </Link>
+          <nav className="flex items-center gap-1.5 text-[13px] mb-5" aria-label="Breadcrumb">
+            <Link to="/" className="text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">Home</Link>
+            <span className="text-slate-300 dark:text-slate-600">›</span>
+            <Link to="/datasets" className="text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">Datasets</Link>
+            <span className="text-slate-300 dark:text-slate-600">›</span>
+            <span className="text-slate-700 dark:text-slate-300 truncate max-w-[200px]">{pageTitle}</span>
+          </nav>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2 leading-tight">
-                {pageTitle}
-              </h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white leading-tight">
+                  {pageTitle}
+                </h1>
+                <button
+                  onClick={() => { toggleFavorite(); showToast(isFavorite ? 'Removed from favorites' : 'Added to favorites', 'success'); }}
+                  className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isFavorite ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600 hover:text-amber-400'}`}
+                  title={isFavorite ? 'Remove from favorites' : 'Save to favorites'}
+                >
+                  <svg className={`w-5 h-5 ${isFavorite ? 'fill-current' : 'fill-none'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                  </svg>
+                </button>
+              </div>
               <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
                 {pageDescription}
               </p>
@@ -647,8 +694,14 @@ export default function DatasetView() {
                 <EmbedButton datasetId={id || '4'} />
                 <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                   {[['all', 'All time'], ['recent', 'Last 20 yrs']].map(([key, label]) => (
-                    <button key={key} onClick={() => setTimeFilter(key)} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${timeFilter === key ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>{label}</button>
+                    <button key={key} onClick={() => { setTimeFilter(key); setShowYoY(false); }} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${timeFilter === key && !showYoY ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>{label}</button>
                   ))}
+                  <button
+                    onClick={() => setShowYoY(v => !v)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${showYoY ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                  >
+                    YoY %
+                  </button>
                 </div>
               </div>
             </div>
@@ -688,9 +741,29 @@ export default function DatasetView() {
           )}
 
           <div className="p-4 pt-2">
+            {showYoY && !loading && (
+              <div className="mb-2 text-xs text-slate-500 dark:text-slate-400">Year-over-year % change (actual data only)</div>
+            )}
             <div className="h-[280px] sm:h-[350px] md:h-[420px]">
               {loading ? (
                 <div className="h-full flex flex-col items-center justify-center gap-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg animate-pulse"><p className="text-sm text-slate-400 dark:text-slate-500">Loading data…</p></div>
+              ) : showYoY ? (
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                  <BarChart data={yoyData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#1e293b' : '#f1f5f9'} />
+                    <XAxis dataKey="label" tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                    <YAxis tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} width={55} tickFormatter={v => `${v}%`} />
+                    <Tooltip
+                      contentStyle={{ background: isDark ? '#0f172a' : '#fff', border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, borderRadius: 8, fontSize: 12 }}
+                      formatter={(v: number) => [`${v}%`, 'YoY Change']}
+                    />
+                    <Bar dataKey="change" radius={[3, 3, 0, 0]}>
+                      {yoyData.map((entry, idx) => (
+                        <Cell key={idx} fill={entry.change >= 0 ? '#10b981' : '#ef4444'} fillOpacity={0.85} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               ) : (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>{renderChart()}</ResponsiveContainer>
               )}

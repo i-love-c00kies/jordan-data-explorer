@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import Papa from 'papaparse';
-import { OWID_CONFIG, CATALOG_DATA } from '../constants/datasets';
+import { CATALOG_DATA } from '../constants/datasets';
+import { dataService } from '../services/dataService';
 import { detectAnomalies } from '../utils/statistics';
 import type { Anomaly } from '../utils/statistics';
 import { HISTORICAL_EVENTS } from '../constants/events';
@@ -15,53 +15,33 @@ interface DatasetAnomaly extends Anomaly {
 export default function Anomalies() {
   const [anomalies, setAnomalies] = useState<DatasetAnomaly[]>([]);
   const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
   const [filter, setFilter] = useState<'all' | 'extreme' | 'severe' | 'moderate'>('all');
 
   useEffect(() => {
-    const fetchAll = async () => {
-      const promises = CATALOG_DATA.map(ds => {
-        const config = OWID_CONFIG[String(ds.id)];
-        if (!config) return Promise.resolve([]);
-
-        return new Promise<DatasetAnomaly[]>((resolve) => {
-          Papa.parse(`https://ourworldindata.org/grapher/${config.slug}.csv`, {
-            download: true, header: true,
-            complete: (res) => {
-              try {
-                const jordanData = res.data.filter((row: any) => row['Entity'] === 'Jordan');
-                const keys = jordanData.length > 0 ? Object.keys(jordanData[0] as object) : [];
-                const valueKey = keys.find((k: string) => k !== 'Entity' && k !== 'Code' && k !== 'Year' && k !== '');
-
-                const timeSeries = jordanData
-                  .map((row: any) => ({ year: parseInt(row['Year']), value: parseFloat(row[valueKey || '']) }))
-                  .filter((d: any) => !isNaN(d.year) && !isNaN(d.value) && d.year >= 1960)
-                  .sort((a: any, b: any) => a.year - b.year);
-
-                const detected = detectAnomalies(timeSeries, 1.8);
-                resolve(detected.map(a => {
-                  const nearEvent = HISTORICAL_EVENTS.find(e => Math.abs(e.year - a.year) <= 1);
-                  return { ...a, datasetId: ds.id, datasetTitle: ds.title, possibleCause: nearEvent?.label };
-                }));
-              } catch { resolve([]); }
-            },
-            error: () => resolve([]),
-          });
-        });
-      });
-
-      const results = await Promise.all(promises);
-      const allAnomalies = results.flat();
-
+    const ids = CATALOG_DATA.map(d => d.id);
+    dataService.fetchAll(ids, (done, total) => {
+      setProgress(Math.round((done / total) * 100));
+    }).then(allData => {
+      const allAnomalies: DatasetAnomaly[] = [];
+      for (const ds of CATALOG_DATA) {
+        const series = allData.get(ds.id) || [];
+        if (series.length === 0) continue;
+        try {
+          const detected = detectAnomalies(series, 1.8);
+          for (const a of detected) {
+            const nearEvent = HISTORICAL_EVENTS.find(e => Math.abs(e.year - a.year) <= 1);
+            allAnomalies.push({ ...a, datasetId: ds.id, datasetTitle: ds.title, possibleCause: nearEvent?.label });
+          }
+        } catch {}
+      }
       allAnomalies.sort((a, b) => {
         const order = { extreme: 0, severe: 1, moderate: 2 };
         return order[a.magnitude] - order[b.magnitude] || b.year - a.year;
       });
-
       setAnomalies(allAnomalies);
       setLoading(false);
-    };
-
-    fetchAll();
+    });
   }, []);
 
   const filtered = filter === 'all' ? anomalies : anomalies.filter(a => a.magnitude === filter);
@@ -87,9 +67,11 @@ export default function Anomalies() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-6 h-6 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin dark:border-slate-700 dark:border-t-blue-400" />
-            <span className="ml-3 text-sm text-slate-500 dark:text-slate-400">Analyzing datasets...</span>
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="w-48 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
+            </div>
+            <span className="text-sm text-slate-500 dark:text-slate-400">Analyzing {progress}% of datasets...</span>
           </div>
         ) : (
           <div className="space-y-2">

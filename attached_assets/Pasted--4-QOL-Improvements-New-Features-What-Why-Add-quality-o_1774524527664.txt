@@ -1,0 +1,46 @@
+#4 - QOL Improvements & New Features
+What & Why
+Add quality-of-life improvements and new features that make the app more useful, navigable, and professional. These changes improve daily usability and make the platform feel more complete.
+
+Done looks like
+Cmd/Ctrl+K opens a global search overlay that lets users jump to any dataset, page, or story
+Users can star/favorite datasets, which persist across sessions and appear in a "Favorites" section on the Datasets page
+Category filter pills show counts (e.g., "Health (12)")
+Year-over-year percentage change toggle available on DatasetView charts
+"Back to top" button appears when scrolling down on long pages
+Toast notifications appear for CSV export, PNG download, and embed copy actions
+Smooth page transitions using CSS animations on route change
+Breadcrumb navigation on DatasetView and CompareView pages
+URL-based filter state on Datasets page (category and search query persist in URL, so browser back/forward works)
+Print-friendly stylesheet that formats the current dataset chart + insights for printing
+Mobile: swipe gestures on Stories chapter navigation
+Overview sparkline cards show a mini tooltip on hover with the dataset's latest value and year
+Navbar shows a subtle progress indicator when data is loading
+Out of scope
+User accounts or authentication
+Server-side rendering
+Database storage
+Tasks
+Global search overlay (Cmd+K) — Build a modal search that indexes all dataset titles, categories, page names, and story titles. Keyboard navigable with arrow keys and Enter to select. Opens with Cmd/Ctrl+K shortcut.
+Favorites system — Add a star button on each dataset card and DatasetView page. Persist favorites in localStorage. Show a "Favorites" filter on the Datasets page and a favorites row on Overview.
+Category counts in filter pills — Show the number of datasets in each category next to the label on Datasets and Overview pages.
+Year-over-year change toggle — Add a toggle button on DatasetView that switches between raw values and annual % change view. Compute YoY change from the data array.
+Toast notification system — Create a lightweight toast component. Show success toasts when users export CSV, download PNG, or copy embed code.
+Back to top button — Show a floating button when user scrolls past 500px. Smooth scroll to top on click.
+Smooth page transitions — Add CSS fade-in animation when route changes using the Suspense fallback boundary.
+Breadcrumb navigation — Add breadcrumbs to DatasetView (Home > Datasets > [Name]) and CompareView.
+URL-persisted filters — Make Datasets page category filter and search query sync with URL search params so browser navigation works.
+Print stylesheet — Add @media print CSS that hides nav/footer, formats the chart area cleanly, and shows the insights panel in a print-friendly layout.
+Loading progress indicator — Show a thin progress bar at the top of the page (under the navbar) when datasets are being fetched.
+Relevant files
+src/components/Navbar.tsx
+src/pages/Datasets.tsx
+src/pages/DatasetView.tsx
+src/pages/Overview.tsx
+src/pages/CompareView.tsx
+src/pages/Stories.tsx
+src/components/ExportButton.tsx
+src/components/DownloadChartButton.tsx
+src/components/EmbedButton.tsx
+src/index.css
+src/App.tsx
