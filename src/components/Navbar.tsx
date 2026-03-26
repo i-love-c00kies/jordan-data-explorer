@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 
@@ -9,6 +9,24 @@ const NAV_LINKS = [
   { to: '/stories', label: 'Stories' },
 ];
 
+function useFavCount() {
+  const read = (): number => {
+    try { return (JSON.parse(localStorage.getItem('jode-favorites') || '[]') as number[]).length; }
+    catch { return 0; }
+  };
+  const [count, setCount] = useState(read);
+  useEffect(() => {
+    const update = () => setCount(read());
+    window.addEventListener('jode-favorites-changed', update);
+    window.addEventListener('storage', update);
+    return () => {
+      window.removeEventListener('jode-favorites-changed', update);
+      window.removeEventListener('storage', update);
+    };
+  }, []);
+  return count;
+}
+
 interface NavbarProps {
   onSearchOpen?: () => void;
 }
@@ -16,6 +34,7 @@ interface NavbarProps {
 export default function Navbar({ onSearchOpen }: NavbarProps) {
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const favCount = useFavCount();
 
   const isActive = (path: string) => {
     if (path === '/datasets') return pathname.startsWith('/datasets') || pathname.startsWith('/compare');
@@ -45,6 +64,22 @@ export default function Navbar({ onSearchOpen }: NavbarProps) {
               {link.label}
             </Link>
           ))}
+
+          <Link
+            to="/dashboard"
+            className={`relative px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors ${
+              pathname === '/dashboard'
+                ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50'
+            }`}
+          >
+            Dashboard
+            {favCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-amber-400 dark:bg-amber-500 text-[9px] font-bold text-white flex items-center justify-center leading-none">
+                {favCount > 99 ? '99+' : favCount}
+              </span>
+            )}
+          </Link>
         </div>
 
         <div className="hidden md:flex items-center gap-2">
@@ -98,6 +133,18 @@ export default function Navbar({ onSearchOpen }: NavbarProps) {
             <Link key={link.to} to={link.to} onClick={() => setMenuOpen(false)}
               className={`px-3 py-2.5 rounded-md text-sm font-medium ${isActive(link.to) ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>{link.label}</Link>
           ))}
+          <Link
+            to="/dashboard"
+            onClick={() => setMenuOpen(false)}
+            className={`px-3 py-2.5 rounded-md text-sm font-medium flex items-center gap-2 ${pathname === '/dashboard' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}
+          >
+            Dashboard
+            {favCount > 0 && (
+              <span className="min-w-[16px] h-4 px-1 rounded-full bg-amber-400 dark:bg-amber-500 text-[9px] font-bold text-white flex items-center justify-center">
+                {favCount}
+              </span>
+            )}
+          </Link>
         </div>
       )}
     </nav>

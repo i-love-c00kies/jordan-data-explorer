@@ -15,6 +15,7 @@ function useFavorites() {
     setFavorites(prev => {
       const next = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
       localStorage.setItem('jode-favorites', JSON.stringify(next));
+      window.dispatchEvent(new Event('jode-favorites-changed'));
       return next;
     });
   };

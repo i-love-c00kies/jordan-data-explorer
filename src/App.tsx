@@ -18,6 +18,7 @@ const Stories = lazy(() => import('./pages/Stories'));
 const Scenarios = lazy(() => import('./pages/Scenarios'));
 const Quality = lazy(() => import('./pages/Quality'));
 const Anomalies = lazy(() => import('./pages/Anomalies'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 
 const PageLoader = () => (
   <div className="grow flex items-center justify-center min-h-[50vh]">
@@ -61,6 +62,7 @@ export default function App() {
                   <Route path="/scenarios" element={<Scenarios />} />
                   <Route path="/quality" element={<Quality />} />
                   <Route path="/anomalies" element={<Anomalies />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                 </Routes>
               </div>
             </Suspense>

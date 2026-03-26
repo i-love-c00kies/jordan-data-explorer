@@ -5,7 +5,9 @@ import { CATALOG_DATA } from '../constants/datasets';
 const PAGES = [
   { title: 'Overview', path: '/overview', desc: 'All indicators at a glance' },
   { title: 'Datasets', path: '/datasets', desc: 'Browse all 100 datasets' },
+  { title: 'Dashboard', path: '/dashboard', desc: 'Your starred datasets' },
   { title: 'Correlations', path: '/correlations', desc: 'Correlation matrix' },
+  { title: 'Compare', path: '/compare', desc: 'Side-by-side dataset comparison' },
   { title: 'Stories', path: '/stories', desc: 'Data narratives' },
   { title: 'Quality', path: '/quality', desc: 'Data quality scores' },
   { title: 'Anomalies', path: '/anomalies', desc: 'Statistical anomalies' },

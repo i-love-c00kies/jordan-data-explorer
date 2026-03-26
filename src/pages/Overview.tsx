@@ -38,6 +38,23 @@ const formatValue = (val: number) => {
   return val.toFixed(1);
 };
 
+function useOverviewFavorites() {
+  const [favorites, setFavorites] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem('jode-favorites') || '[]'); } catch { return []; }
+  });
+  const toggle = (id: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFavorites(prev => {
+      const next = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
+      localStorage.setItem('jode-favorites', JSON.stringify(next));
+      window.dispatchEvent(new Event('jode-favorites-changed'));
+      return next;
+    });
+  };
+  return { isFav: (id: number) => favorites.includes(id), toggle };
+}
+
 export default function Overview() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -54,6 +71,7 @@ export default function Overview() {
     }))
   );
   const [progress, setProgress] = useState(0);
+  const { isFav, toggle: toggleFav } = useOverviewFavorites();
 
   useEffect(() => {
     const ids = CATALOG_DATA.map(d => d.id);
@@ -140,18 +158,29 @@ export default function Overview() {
                 className="group rounded-xl border border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900/50 p-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all hover:shadow-sm"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 mb-1">
                       {color && <span className={`w-1.5 h-1.5 rounded-full ${color.dot} shrink-0`} />}
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 truncate">{ds.category}</span>
                     </div>
                     <h3 className="text-[13px] font-semibold text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{ds.title}</h3>
                   </div>
-                  {!ds.loading && ds.values.length > 0 && (
-                    <span className={`shrink-0 text-[11px] font-semibold px-1.5 py-0.5 rounded ${isPositive ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50' : 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/50'}`}>
-                      {isPositive ? '+' : ''}{ds.change.toFixed(1)}%
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={(e) => toggleFav(ds.id, e)}
+                      className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${isFav(ds.id) ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600 hover:text-amber-400'}`}
+                      title={isFav(ds.id) ? 'Remove from dashboard' : 'Add to dashboard'}
+                    >
+                      <svg className={`w-3.5 h-3.5 ${isFav(ds.id) ? 'fill-current' : 'fill-none'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                      </svg>
+                    </button>
+                    {!ds.loading && ds.values.length > 0 && (
+                      <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded ${isPositive ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50' : 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/50'}`}>
+                        {isPositive ? '+' : ''}{ds.change.toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div style={{ height: '40px' }} className="mb-2">

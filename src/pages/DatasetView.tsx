@@ -249,6 +249,7 @@ function useFavorites(id: string | undefined) {
     setFavorites(prev => {
       const next = prev.includes(numId) ? prev.filter(f => f !== numId) : [...prev, numId];
       localStorage.setItem('jode-favorites', JSON.stringify(next));
+      window.dispatchEvent(new Event('jode-favorites-changed'));
       return next;
     });
   };
@@ -872,6 +873,15 @@ export default function DatasetView() {
               <div className="flex items-center gap-2 shrink-0 flex-wrap">
                 {spanText && <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300">{spanText}</span>}
                 {projPts.length > 0 && <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-300">+{projPts.length} projected</span>}
+                <Link
+                  to={`/compare?ids=${id}`}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-xs font-medium text-blue-700 dark:text-blue-300 transition-colors"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                  </svg>
+                  Add to Compare
+                </Link>
               </div>
             )}
           </div>
