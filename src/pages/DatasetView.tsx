@@ -9,6 +9,7 @@ import EmbedButton from '../components/EmbedButton';
 import InsightsPanel from '../components/InsightsPanel';
 import RelatedDatasets from '../components/RelatedDatasets';
 import SourceDrawer from '../components/SourceDrawer';
+import OnboardingTour from '../components/OnboardingTour';
 import { calculateAdvancedProjection } from '../utils/projectionEngine';
 import { OWID_CONFIG } from '../constants/datasets';
 import { HISTORICAL_EVENTS } from '../constants/events';
@@ -19,7 +20,7 @@ const COLORBLIND_COLORS = ['#0072B2', '#009E73', '#D55E00', '#CC79A7', '#F0E442'
 
 const COMPARISON_ENTITIES: Record<string, string> = {
   world: 'World',
-  mena: 'Middle East & North Africa (WB)',
+  mena: 'Middle East & North Africa',
 };
 
 const TRC_JORDAN_DATA: Record<number, number> = {
@@ -158,7 +159,7 @@ export default function DatasetView() {
   });
   const [showEvents, setShowEvents] = useState(true);
   const [compareEntities, setCompareEntities] = useState<string[]>([]);
-  const [comparisonData, setComparisonData] = useState<Record<string, Record<number, number>>>({});
+  const [comparisonData, setComparisonData] = useState<Record<string, { actuals: Record<number, number>; projected: Record<number, number> }>>({});
   const [useColorblind, setUseColorblind] = useState(() => localStorage.getItem('jode-colorblind') === 'true');
 
   const timeFilter = searchParams.get('range') || 'all';
@@ -244,9 +245,21 @@ export default function DatasetView() {
       const year = parseInt(String(d.label).replace(' (Proj)', ''), 10);
       compareEntities.forEach(entity => {
         const entityName = COMPARISON_ENTITIES[entity];
-        const val = comparisonData[entity]?.[year];
-        if (val != null) {
-          newObj[`${entityName}_actual`] = !isProj ? val : null;
+        const entityInfo = comparisonData[entity];
+        if (!entityInfo) return;
+
+        if (!isProj) {
+          const val = entityInfo.actuals[year];
+          if (val != null) {
+            newObj[`${entityName}_actual`] = val;
+          }
+        }
+
+        if (isProj || isBridgePoint) {
+          const projVal = entityInfo.projected[year];
+          if (projVal != null) {
+            newObj[`${entityName}_projected`] = projVal;
+          }
         }
       });
 
@@ -342,11 +355,27 @@ export default function DatasetView() {
         download: true,
         header: true,
         complete: (results) => {
-          const entityData = results.data.filter((row: any) => row['Entity'] === entityName);
-          const mapped: Record<number, number> = {};
+          let entityData = results.data.filter((row: any) => row['Entity'] === entityName);
+
+          if (entityData.length === 0 && entity === 'mena') {
+            const altNames = [
+              'Middle East & North Africa (WB)',
+              'Middle East and North Africa',
+              'Middle East & North Africa',
+              'MENA',
+            ];
+            for (const alt of altNames) {
+              entityData = results.data.filter((row: any) => row['Entity'] === alt);
+              if (entityData.length > 0) break;
+            }
+          }
+
           const maxValue = Math.max(...data.map(d => d.Total || d['Total Emissions'] || 0));
           let scaleDivider = 1;
           if (maxValue >= 1000000 && id !== '5') scaleDivider = 1000000;
+
+          const actuals: Record<number, number> = {};
+          const historyForProj: { year: number; value: number }[] = [];
 
           entityData.forEach((row: any) => {
             const keys = Object.keys(row);
@@ -354,11 +383,30 @@ export default function DatasetView() {
             const val = parseFloat(row[valueKey || '']);
             const year = parseInt(row['Year'], 10);
             if (!isNaN(val) && year >= 1850) {
-              mapped[year] = Math.round((val / scaleDivider) * 100) / 100;
+              const scaled = Math.round((val / scaleDivider) * 100) / 100;
+              actuals[year] = scaled;
+              historyForProj.push({ year, value: scaled });
             }
           });
 
-          setComparisonData(prev => ({ ...prev, [entity]: mapped }));
+          const isPct = config.unit === '%' && !config.noCap;
+          const projections = calculateAdvancedProjection(historyForProj, 2030, isPct);
+          const projected: Record<number, number> = {};
+
+          if (historyForProj.length > 0) {
+            const lastYear = historyForProj[historyForProj.length - 1].year;
+            const lastVal = historyForProj[historyForProj.length - 1].value;
+            projected[lastYear] = lastVal;
+          }
+
+          projections.forEach(p => {
+            projected[p.year] = p.value;
+          });
+
+          setComparisonData(prev => ({
+            ...prev,
+            [entity]: { actuals, projected },
+          }));
         },
       });
     });
@@ -392,8 +440,10 @@ export default function DatasetView() {
     const brushFill   = isDark ? '#0f172a' : '#f8fafc';
     const brushStroke = isDark ? '#334155' : '#e2e8f0';
 
+    const hasEvents = visibleEvents.length > 0;
+
     return (
-      <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+      <LineChart data={chartData} margin={{ top: hasEvents ? 35 : 10, right: 10, left: 0, bottom: 20 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
         <XAxis
           dataKey="label"
@@ -412,16 +462,16 @@ export default function DatasetView() {
           width={48}
         />
         <Tooltip content={<CustomTooltip unit={metadata.unit} />} cursor={{ stroke: isDark ? '#334155' : '#e2e8f0', strokeWidth: 1 }} />
-        <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px', color: isDark ? '#64748b' : '#94a3b8' }} iconType="circle" iconSize={8} />
+        <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px' }} iconType="circle" iconSize={8} formatter={(value: string) => <span className="text-slate-500 dark:text-slate-400">{value}</span>} />
 
-        {visibleEvents.map(event => (
+        {visibleEvents.map((event, idx) => (
           <ReferenceLine
             key={event.year}
             x={String(event.year)}
             stroke={event.color}
             strokeDasharray="4 4"
             strokeOpacity={0.6}
-            label={{ value: event.label, position: 'top', fill: isDark ? '#94a3b8' : '#64748b', fontSize: 9 }}
+            label={{ value: event.label, position: idx % 2 === 0 ? 'insideTopRight' : 'insideTopLeft', fill: isDark ? '#94a3b8' : '#64748b', fontSize: 9, offset: 4 }}
           />
         ))}
 
@@ -467,18 +517,31 @@ export default function DatasetView() {
           const entityName = COMPARISON_ENTITIES[entity];
           const color = useColorblind ? palette[(keysForChart.length + idx) % palette.length] : ['#94a3b8', '#a78bfa'][idx % 2];
           return (
-            <Line
-              key={entityName}
-              type="monotone"
-              dataKey={`${entityName}_actual`}
-              name={entityName}
-              stroke={color}
-              strokeWidth={1.5}
-              strokeOpacity={0.7}
-              strokeDasharray="2 2"
-              dot={false}
-              connectNulls
-            />
+            <React.Fragment key={entityName}>
+              <Line
+                type="monotone"
+                dataKey={`${entityName}_actual`}
+                name={entityName}
+                stroke={color}
+                strokeWidth={1.5}
+                strokeOpacity={0.7}
+                strokeDasharray="2 2"
+                dot={false}
+                connectNulls
+              />
+              <Line
+                type="monotone"
+                dataKey={`${entityName}_projected`}
+                name={`${entityName} (Proj)`}
+                stroke={color}
+                strokeWidth={1.5}
+                strokeOpacity={0.5}
+                strokeDasharray="6 3"
+                dot={false}
+                connectNulls
+                legendType="none"
+              />
+            </React.Fragment>
           );
         })}
 
@@ -501,6 +564,7 @@ export default function DatasetView() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 pb-20">
+      <OnboardingTour />
       <div className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
         <div className="max-w-5xl mx-auto px-5 pt-8 pb-6">
           <Link to="/datasets" className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mb-6">
@@ -565,7 +629,7 @@ export default function DatasetView() {
                   onClick={() => toggleEntity(key)}
                   className={`px-2.5 py-1 text-[11px] font-medium rounded-md border transition-all ${compareEntities.includes(key) ? 'bg-violet-50 dark:bg-violet-950/50 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'}`}
                 >
-                  vs {label.replace(' (WB)', '')}
+                  vs {label}
                 </button>
               ))}
 
@@ -586,7 +650,7 @@ export default function DatasetView() {
               {loading ? (
                 <div className="h-full flex flex-col items-center justify-center gap-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg animate-pulse"><p className="text-sm text-slate-400 dark:text-slate-500">Loading data…</p></div>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">{renderChart()}</ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>{renderChart()}</ResponsiveContainer>
               )}
             </div>
           </div>

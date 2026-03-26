@@ -26,6 +26,12 @@ const SOURCE_DETAILS: Record<string, { url: string; methodology: string; gaps: s
   '22': { url: 'https://ourworldindata.org/remittances', methodology: 'World Bank — personal remittances received as % of GDP.', gaps: 'Informal channels may be underreported.', lastUpdated: '2024' },
   '23': { url: 'https://ourworldindata.org/electricity-mix', methodology: 'Ember Climate — total generation in terawatt-hours.', gaps: 'Historical data before 2000 from BP Statistical Review.', lastUpdated: '2024' },
   '24': { url: 'https://ourworldindata.org/land-use', methodology: 'FAO — share of land classified as agricultural.', gaps: 'Classification criteria may shift across census years.', lastUpdated: '2024' },
+  '25': { url: 'https://ourworldindata.org/poverty', methodology: 'World Bank PIP — population below $2.15/day (2017 PPP).', gaps: 'Survey-based; not available for all years.', lastUpdated: '2024' },
+  '26': { url: 'https://ourworldindata.org/youth-not-in-education-employment-training', methodology: 'ILO modeled estimates — share of youth (15-24) NEET.', gaps: 'Definitions of "youth" and "training" vary across surveys.', lastUpdated: '2024' },
+  '27': { url: 'https://ourworldindata.org/refugees', methodology: 'UNHCR — refugees by country or territory of asylum.', gaps: 'Does not include internally displaced persons.', lastUpdated: '2024' },
+  '28': { url: 'https://ourworldindata.org/tourism', methodology: 'World Bank — international inbound tourist arrivals.', gaps: 'Same-day visitors may be excluded in some years.', lastUpdated: '2024' },
+  '29': { url: 'https://ourworldindata.org/solar-energy', methodology: 'Ember — share of electricity from solar generation.', gaps: 'Data begins ~2000; off-grid solar not fully captured.', lastUpdated: '2024' },
+  '30': { url: 'https://ourworldindata.org/energy', methodology: 'Ember / BP — total primary energy consumption in TWh.', gaps: 'Traditional biomass may be underreported.', lastUpdated: '2024' },
 };
 
 export default function SourceDrawer({ datasetId }: { datasetId: string }) {
