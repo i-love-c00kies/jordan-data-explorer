@@ -96,7 +96,7 @@ export default function Overview() {
       <div className="max-w-7xl mx-auto px-5 pt-8 pb-4">
         <div className="mb-6">
           <h1 className="text-xl font-semibold text-slate-900 dark:text-white mb-1">Overview</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">All 30 indicators at a glance with 5-year change trends.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">All 100 indicators at a glance with 5-year change trends.</p>
         </div>
 
         <div className="flex gap-1.5 overflow-x-auto scrollbar-none mb-6 pb-1">

@@ -19,7 +19,7 @@ An open-source web application for exploring macroeconomic, demographic, and env
 - `src/components/` — Reusable UI components (Navbar, Footer, ThemeToggle, ExportButton, DownloadChartButton, EmbedButton, InsightsPanel, RelatedDatasets, SourceDrawer, OnboardingTour)
 - `src/pages/` — Route-level views:
   - `Home.tsx` — Editorial hero, capabilities grid, methodology section
-  - `Overview.tsx` — Sparkline dashboard for all 30 datasets with 5yr change %
+  - `Overview.tsx` — Sparkline dashboard for all 100 datasets with 5yr change %
   - `Datasets.tsx` — Searchable/filterable catalog with category pills
   - `DatasetView.tsx` — Individual dataset chart with dual Y-axis, event annotations, projections
   - `CompareView.tsx` — Multi-dataset comparison with interactive legend
@@ -28,7 +28,7 @@ An open-source web application for exploring macroeconomic, demographic, and env
   - `Stories.tsx` — Interactive data narratives (3 stories with chapter navigation)
   - `Scenarios.tsx` — Regression-based what-if scenario modeler
   - `Quality.tsx` — Data quality scorecard (completeness, freshness, coverage)
-- `src/constants/datasets.ts` — Metadata/config for all 30 supported indicators
+- `src/constants/datasets.ts` — Metadata/config for all 100 supported indicators (9 categories)
 - `src/constants/events.ts` — Historical events for chart annotations
 - `src/utils/projectionEngine.ts` — "Titan" heuristic projection engine
 - `src/utils/statistics.ts` — Pearson correlation, linear regression, anomaly detection, data quality assessment
@@ -54,8 +54,19 @@ An open-source web application for exploring macroeconomic, demographic, and env
 - Animation classes: `animate-fade-in`, `animate-fade-in-delay-1/2/3`, `marquee-track`
 - Consistent rounded-xl cards with border-slate-200/60 borders
 
+## Dataset Categories (9)
+- **Technology** (4): Internet, Mobile, Broadband, Secure Servers, R&D
+- **Health** (17): Life Expectancy, Child/Infant/Neonatal Mortality, Maternal Mortality, Hospital Beds, Physicians, Nurses, Vaccinations, Obesity, Smoking, Diabetes, TB, Anemia, Health Expenditure, Caloric/Protein Supply, Skilled Birth Attendance
+- **Environment** (14): CO₂, CO₂ per Capita, Methane, N₂O, GHG per Capita, PM2.5, Forest, Renewables, Solar, Wind, Fossil Fuels, Water Use, Arable Land, Carbon Intensity, Agricultural Land, Water Scarcity
+- **Demographics** (10): Population, Fertility, Urban Share, HDI, Female Labor, Net Migration, Median Age, Dependency Ratio, Population Density, Natural Growth, Gender Wage Gap, Refugees
+- **Economy** (13): GDP, GDP per Capita, Unemployment, CPI, Inflation, Gov Spending, Gov Debt, Tax Revenue, GINI, Remittances, Tourism, Labor Productivity, Agriculture/Manufacturing/Services GDP shares
+- **Infrastructure** (7): Electricity Access/Generation, Primary Energy, Gas/Oil Electricity, Energy per Capita, Clean Cooking, Clean Water, Sanitation
+- **Education** (8): Primary/Secondary/Tertiary Enrollment, Education Spending, Mean/Expected Years of Schooling, Primary Completion, Pupil-Teacher Ratio, Youth NEET
+- **Governance** (6): Military Spending, Corruption, Democracy, Human Rights, Women in Parliament, Press Freedom, Rule of Law
+- **Trade** (5): FDI, Trade Openness, Exports, Imports, Merchandise Exports/Imports
+
 ## Features
-- **30 Datasets**: Internet, Life Expectancy, CO2, Population, GDP, Electricity, Fertility, Urban, Renewables, Child/Infant Mortality, Literacy, Mobile, Water Scarcity, Unemployment, CPI, HDI, Gov Spending, Health Spending, Female Labor, Protein Supply, Remittances, Electricity Gen, Agricultural Land, Poverty, Youth NEET, Refugees, Tourism, Solar, Primary Energy
+- **100 Datasets** across 9 categories covering technology, health, environment, economy, demographics, infrastructure, education, governance, and trade
 - **Sparkline Dashboard**: Overview page with mini charts and 5-year change percentages
 - **Correlation Engine**: Pearson heatmap matrix with click-to-detail panel
 - **Anomaly Detection**: Z-score analysis (threshold 1.8) with historical event context
@@ -71,6 +82,10 @@ An open-source web application for exploring macroeconomic, demographic, and env
 - **Colorblind Palette**: Accessible colors toggle
 - **Compare Engine**: Multi-dataset comparison with interactive legend
 - **Mobile Responsive**: Hamburger menu, responsive chart heights
+
+## Removed Datasets
+- Literacy Rate (formerly ID 11) — removed due to sparse Jordan data
+- Poverty Rate (formerly ID 25) — removed due to sparse Jordan data
 
 ## Persistence
 - `jode-colorblind` — localStorage — Colorblind preference

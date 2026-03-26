@@ -16,8 +16,8 @@ const SOURCES = [
 
 const CAPABILITIES = [
   {
-    title: '30 Datasets',
-    desc: 'Technology, health, environment, economy, demographics, infrastructure, and education.',
+    title: '100 Datasets',
+    desc: 'Technology, health, environment, economy, demographics, infrastructure, education, governance, and trade.',
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375" /></svg>,
     color: 'blue',
   },
@@ -96,7 +96,7 @@ export default function Home() {
             </h1>
 
             <p className="text-base md:text-lg text-slate-500 dark:text-slate-400 leading-relaxed mb-8 max-w-lg animate-fade-in-delay-2">
-              30 indicators spanning 175 years of history with forward projections to 2030. Correlation analysis, anomaly detection, and interactive narratives.
+              100 indicators spanning 175 years of history with forward projections to 2030. Correlation analysis, anomaly detection, and interactive narratives.
             </p>
 
             <form onSubmit={handleHeroSearch} className="flex items-center gap-2 mb-6 max-w-md animate-fade-in-delay-3">
