@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CATALOG_DATA, CATEGORY_COLORS } from '../constants/datasets';
 import { dataService } from '../services/dataService';
 import { useTheme } from '../context/ThemeContext';
+import { useFavorites } from '../hooks/useFavorites';
 
 interface SparkData {
   id: number;
@@ -38,23 +39,6 @@ const formatValue = (val: number) => {
   return val.toFixed(1);
 };
 
-function useOverviewFavorites() {
-  const [favorites, setFavorites] = useState<number[]>(() => {
-    try { return JSON.parse(localStorage.getItem('jode-favorites') || '[]'); } catch { return []; }
-  });
-  const toggle = (id: number, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setFavorites(prev => {
-      const next = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
-      localStorage.setItem('jode-favorites', JSON.stringify(next));
-      window.dispatchEvent(new Event('jode-favorites-changed'));
-      return next;
-    });
-  };
-  return { isFav: (id: number) => favorites.includes(id), toggle };
-}
-
 export default function Overview() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -71,7 +55,7 @@ export default function Overview() {
     }))
   );
   const [progress, setProgress] = useState(0);
-  const { isFav, toggle: toggleFav } = useOverviewFavorites();
+  const { isFavorite: isFav, toggle: toggleFav } = useFavorites();
 
   useEffect(() => {
     const ids = CATALOG_DATA.map(d => d.id);

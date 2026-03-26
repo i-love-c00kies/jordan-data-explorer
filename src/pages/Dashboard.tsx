@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CATALOG_DATA, CATEGORY_COLORS } from '../constants/datasets';
 import { dataService } from '../services/dataService';
 import { useTheme } from '../context/ThemeContext';
+import { useFavorites } from '../hooks/useFavorites';
 
 function SvgSparkline({ values, color }: { values: number[]; color: string }) {
   if (values.length < 2) return null;
@@ -45,28 +46,10 @@ interface SparkEntry {
 export default function Dashboard() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-
-  const [favorites, setFavorites] = useState<number[]>(() => {
-    try { return JSON.parse(localStorage.getItem('jode-favorites') || '[]'); } catch { return []; }
-  });
+  const { favorites, toggle: toggleFav } = useFavorites();
 
   const [sparkData, setSparkData] = useState<Map<number, SparkEntry>>(new Map());
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const update = () => {
-      try {
-        const newFavs = JSON.parse(localStorage.getItem('jode-favorites') || '[]') as number[];
-        setFavorites(newFavs);
-      } catch {}
-    };
-    window.addEventListener('jode-favorites-changed', update);
-    window.addEventListener('storage', update);
-    return () => {
-      window.removeEventListener('jode-favorites-changed', update);
-      window.removeEventListener('storage', update);
-    };
-  }, []);
 
   const favoriteDatasets = useMemo(
     () => CATALOG_DATA.filter(d => favorites.includes(d.id)),
@@ -96,16 +79,6 @@ export default function Dashboard() {
       });
   }, [favoriteDatasets]);
 
-  const removeFavorite = (id: number, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setFavorites(prev => {
-      const next = prev.filter(f => f !== id);
-      localStorage.setItem('jode-favorites', JSON.stringify(next));
-      window.dispatchEvent(new Event('jode-favorites-changed'));
-      return next;
-    });
-  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
@@ -187,7 +160,7 @@ export default function Dashboard() {
                   className="group relative rounded-xl border border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900/50 p-4 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md transition-all flex flex-col"
                 >
                   <button
-                    onClick={(e) => removeFavorite(ds.id, e)}
+                    onClick={(e) => toggleFav(ds.id, e)}
                     className="absolute top-3 right-3 w-6 h-6 rounded-full text-amber-400 hover:text-slate-400 dark:hover:text-slate-500 transition-colors"
                     title="Remove from dashboard"
                   >

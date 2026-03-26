@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
+import { useFavorites } from '../hooks/useFavorites';
 
 const NAV_LINKS = [
   { to: '/overview', label: 'Overview' },
@@ -9,24 +10,6 @@ const NAV_LINKS = [
   { to: '/stories', label: 'Stories' },
 ];
 
-function useFavCount() {
-  const read = (): number => {
-    try { return (JSON.parse(localStorage.getItem('jode-favorites') || '[]') as number[]).length; }
-    catch { return 0; }
-  };
-  const [count, setCount] = useState(read);
-  useEffect(() => {
-    const update = () => setCount(read());
-    window.addEventListener('jode-favorites-changed', update);
-    window.addEventListener('storage', update);
-    return () => {
-      window.removeEventListener('jode-favorites-changed', update);
-      window.removeEventListener('storage', update);
-    };
-  }, []);
-  return count;
-}
-
 interface NavbarProps {
   onSearchOpen?: () => void;
 }
@@ -34,7 +17,7 @@ interface NavbarProps {
 export default function Navbar({ onSearchOpen }: NavbarProps) {
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const favCount = useFavCount();
+  const { count: favCount } = useFavorites();
 
   const isActive = (path: string) => {
     if (path === '/datasets') return pathname.startsWith('/datasets') || pathname.startsWith('/compare');
@@ -141,7 +124,7 @@ export default function Navbar({ onSearchOpen }: NavbarProps) {
             Dashboard
             {favCount > 0 && (
               <span className="min-w-[16px] h-4 px-1 rounded-full bg-amber-400 dark:bg-amber-500 text-[9px] font-bold text-white flex items-center justify-center">
-                {favCount}
+                {favCount > 99 ? '99+' : favCount}
               </span>
             )}
           </Link>

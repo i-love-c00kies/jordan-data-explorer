@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useFavorites } from '../hooks/useFavorites';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { LineChart, BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, Legend, ReferenceLine, Cell } from 'recharts';
 import Papa from 'papaparse';
@@ -239,23 +240,6 @@ const HeatmapGrid = ({ data, mainKey, unit, isDark }: { data: any[]; mainKey: st
   );
 };
 
-function useFavorites(id: string | undefined) {
-  const [favorites, setFavorites] = useState<number[]>(() => {
-    try { return JSON.parse(localStorage.getItem('jode-favorites') || '[]'); } catch { return []; }
-  });
-  const numId = parseInt(id || '0');
-  const isFavorite = favorites.includes(numId);
-  const toggle = () => {
-    setFavorites(prev => {
-      const next = prev.includes(numId) ? prev.filter(f => f !== numId) : [...prev, numId];
-      localStorage.setItem('jode-favorites', JSON.stringify(next));
-      window.dispatchEvent(new Event('jode-favorites-changed'));
-      return next;
-    });
-  };
-  return { isFavorite, toggle };
-}
-
 export default function DatasetView() {
   const { id } = useParams();
   const { theme } = useTheme();
@@ -263,7 +247,9 @@ export default function DatasetView() {
   const isDark = theme === 'dark';
   const chartRef = useRef<HTMLDivElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isFavorite, toggle: toggleFavorite } = useFavorites(id);
+  const { isFavorite: isFavById, toggle: toggleFavorite } = useFavorites();
+  const numId = parseInt(id || '0');
+  const isFavorite = isFavById(numId);
   const [showYoY, setShowYoY] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [showDataTable, setShowDataTable] = useState(false);
@@ -856,7 +842,7 @@ export default function DatasetView() {
                   {pageTitle}
                 </h1>
                 <button
-                  onClick={() => { toggleFavorite(); showToast(isFavorite ? 'Removed from favorites' : 'Added to favorites', 'success'); }}
+                  onClick={() => { toggleFavorite(numId); showToast(isFavorite ? 'Removed from favorites' : 'Added to favorites', 'success'); }}
                   className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isFavorite ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600 hover:text-amber-400'}`}
                   title={isFavorite ? 'Remove from favorites' : 'Save to favorites'}
                 >
