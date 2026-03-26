@@ -400,7 +400,11 @@ export default function DatasetView() {
       const proj2030Value = proj2030 ? proj2030[mainKey] : null;
 
       const win = window.open('', '_blank');
-      if (!win) { setExportingPdf(false); return; }
+      if (!win) {
+        showToast('Popup blocked — please allow popups for PDF export', 'error');
+        setExportingPdf(false);
+        return;
+      }
 
       win.document.write(`<!DOCTYPE html>
 <html>
@@ -890,7 +894,7 @@ export default function DatasetView() {
                 <button
                   onClick={handleExportPDF}
                   disabled={exportingPdf}
-                  title="Export as PDF"
+                  title="Print / Save as PDF — opens a print-ready summary in a new tab"
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-xs font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {exportingPdf ? (
