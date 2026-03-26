@@ -118,3 +118,60 @@ export interface DataPoint {
   
     return projections;
   };
+
+export interface HoltLinearResult {
+  fitted: { year: number; value: number }[];
+  forecast: { year: number; value: number }[];
+  level: number;
+  trend: number;
+}
+
+export function holtLinear(
+  data: { year: number; value: number }[],
+  alpha: number,
+  beta: number,
+  forecastTo: number = 2030
+): HoltLinearResult {
+  if (data.length < 2) return { fitted: [], forecast: [], level: 0, trend: 0 };
+
+  const sorted = [...data].sort((a, b) => a.year - b.year);
+  const n = sorted.length;
+
+  let L = sorted[0].value;
+  let T = sorted[1].value - sorted[0].value;
+
+  const fitted: { year: number; value: number }[] = [{ year: sorted[0].year, value: L + T }];
+
+  for (let i = 1; i < n; i++) {
+    const v = sorted[i].value;
+    const prevL = L;
+    L = alpha * v + (1 - alpha) * (prevL + T);
+    T = beta * (L - prevL) + (1 - beta) * T;
+    fitted.push({ year: sorted[i].year, value: L + T });
+  }
+
+  const lastYear = sorted[n - 1].year;
+  const steps = forecastTo - lastYear;
+  const forecast: { year: number; value: number }[] = [];
+
+  for (let m = 1; m <= steps; m++) {
+    forecast.push({ year: lastYear + m, value: L + m * T });
+  }
+
+  return { fitted, forecast, level: L, trend: T };
+}
+
+export interface ProjectionPreset {
+  label: string;
+  alpha: number;
+  beta: number;
+  color: string;
+  dashArray: string;
+  description: string;
+}
+
+export const PROJECTION_PRESETS: ProjectionPreset[] = [
+  { label: 'Pessimistic', alpha: 0.15, beta: 0.05, color: '#ef4444', dashArray: '4 3', description: 'Slow adaptation, minimal trend weighting' },
+  { label: 'Baseline',    alpha: 0.45, beta: 0.20, color: '#64748b', dashArray: '4 3', description: 'Balanced smoothing — standard assumption' },
+  { label: 'Optimistic',  alpha: 0.80, beta: 0.50, color: '#10b981', dashArray: '4 3', description: 'Reactive to recent data, strong trend extrapolation' },
+];
