@@ -154,7 +154,7 @@ export default function Overview() {
                   )}
                 </div>
 
-                <div className="h-10 mb-2">
+                <div style={{ height: '40px' }} className="mb-2">
                   {ds.loading ? (
                     <div className="h-full bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
                   ) : ds.values.length > 0 ? (

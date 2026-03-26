@@ -115,11 +115,16 @@ export default function Correlations() {
           <div className="flex flex-col lg:flex-row gap-6">
             <div className="flex-1 overflow-x-auto">
               <div className="inline-block">
-                <div className="flex">
+                <div className="flex items-end">
                   <div className="w-32 shrink-0" />
                   {seriesData.map(d => (
-                    <div key={d.id} className="w-14 shrink-0 px-0.5">
-                      <div className="text-[9px] font-medium text-slate-500 dark:text-slate-400 truncate -rotate-45 origin-bottom-left translate-y-1 h-16 flex items-end">{d.title}</div>
+                    <div key={d.id} className="w-14 shrink-0 px-0.5 flex justify-center" style={{ height: '88px' }}>
+                      <span
+                        className="text-[9px] font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden"
+                        style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)', maxHeight: '84px', textOverflow: 'ellipsis' }}
+                      >
+                        {d.title}
+                      </span>
                     </div>
                   ))}
                 </div>

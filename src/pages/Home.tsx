@@ -62,6 +62,69 @@ const COLOR_MAP: Record<string, { bg: string; text: string; icon: string }> = {
   slate:   { bg: 'bg-slate-50 dark:bg-slate-900/40', text: 'text-slate-600 dark:text-slate-400', icon: 'bg-slate-100 dark:bg-slate-800' },
 };
 
+const HERO_CHARTS = [
+  {
+    label: 'GDP per Capita',
+    color: '#2563eb',
+    unit: 'USD',
+    latest: '$6,460',
+    change: '+142%',
+    positive: true,
+    values: [820, 900, 1100, 1350, 1500, 1800, 2100, 2400, 2900, 3400, 3800, 4200, 4700, 5100, 5600, 5900, 6100, 6460],
+  },
+  {
+    label: 'Internet Penetration',
+    color: '#10b981',
+    unit: '%',
+    latest: '96%',
+    change: '+∞',
+    positive: true,
+    values: [0, 0, 0.5, 1.2, 3, 8, 15, 26, 38, 47, 55, 63, 72, 80, 87, 90, 93, 96],
+  },
+  {
+    label: 'Life Expectancy',
+    color: '#f59e0b',
+    unit: 'yrs',
+    latest: '75.5 yrs',
+    change: '+28%',
+    positive: true,
+    values: [45, 48, 52, 56, 58, 61, 63, 65, 67, 68.5, 70, 71, 72, 72.5, 73, 74, 74.8, 75.5],
+  },
+  {
+    label: 'Literacy Rate',
+    color: '#8b5cf6',
+    unit: '%',
+    latest: '98%',
+    change: '+96%',
+    positive: true,
+    values: [33, 38, 45, 52, 58, 65, 72, 78, 82, 86, 89, 91, 93, 94.5, 96, 97, 97.5, 98],
+  },
+];
+
+function HeroSparkline({ values, color }: { values: number[]; color: string }) {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const W = 120;
+  const H = 36;
+  const pts = values
+    .map((v, i) => `${(i / (values.length - 1)) * W},${H - ((v - min) / range) * (H - 4) + 2}`)
+    .join(' ');
+  const fillPts = `0,${H} ` + pts + ` ${W},${H}`;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: '36px' }}>
+      <defs>
+        <linearGradient id={`grad-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <polygon points={fillPts} fill={`url(#grad-${color.replace('#', '')})`} />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const navigate = useNavigate();
   const [heroSearch, setHeroSearch] = useState('');
@@ -78,53 +141,69 @@ export default function Home() {
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-blue-100/40 to-transparent dark:from-blue-900/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
 
         <div className="relative max-w-7xl mx-auto px-5 pt-16 pb-20 md:pt-24 md:pb-28">
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-2 mb-6 animate-fade-in">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              <span className="text-[11px] font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                Live &middot; {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </span>
+          <div className="flex items-center gap-12 lg:gap-16">
+            <div className="flex-1 min-w-0 max-w-2xl">
+              <div className="flex items-center gap-2 mb-6 animate-fade-in">
+                <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  175 years of data &middot; 2030 projections
+                </span>
+              </div>
+
+              <h1 className="text-[clamp(2rem,5vw,3.5rem)] font-bold tracking-tight leading-[1.1] mb-5 animate-fade-in-delay-1">
+                <span className="text-slate-900 dark:text-white">Jordan's data,</span>
+                <br />
+                <span className="text-blue-600 dark:text-blue-400">visualized.</span>
+              </h1>
+
+              <p className="text-base md:text-lg text-slate-500 dark:text-slate-400 leading-relaxed mb-8 max-w-lg animate-fade-in-delay-2">
+                100 indicators spanning 175 years of history with forward projections to 2030. Correlation analysis, anomaly detection, and interactive narratives.
+              </p>
+
+              <form onSubmit={handleHeroSearch} className="flex items-center gap-2 mb-6 max-w-md animate-fade-in-delay-3">
+                <div className="relative flex-1">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Search datasets..."
+                    value={heroSearch}
+                    onChange={(e) => setHeroSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm"
+                  />
+                </div>
+                <button type="submit" className="px-4 py-2.5 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-slate-900 text-sm font-medium rounded-lg transition-colors shrink-0">
+                  Search
+                </button>
+              </form>
+
+              <div className="flex flex-wrap gap-2.5 animate-fade-in-delay-3">
+                <Link to="/overview" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors">
+                  Explore overview
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+                </Link>
+                <Link to="/datasets" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+                  Browse datasets
+                </Link>
+              </div>
             </div>
 
-            <h1 className="text-[clamp(2rem,5vw,3.5rem)] font-bold tracking-tight leading-[1.1] mb-5 animate-fade-in-delay-1">
-              <span className="text-slate-900 dark:text-white">Jordan's data,</span>
-              <br />
-              <span className="text-slate-900 dark:text-white">visualized.</span>
-            </h1>
-
-            <p className="text-base md:text-lg text-slate-500 dark:text-slate-400 leading-relaxed mb-8 max-w-lg animate-fade-in-delay-2">
-              100 indicators spanning 175 years of history with forward projections to 2030. Correlation analysis, anomaly detection, and interactive narratives.
-            </p>
-
-            <form onSubmit={handleHeroSearch} className="flex items-center gap-2 mb-6 max-w-md animate-fade-in-delay-3">
-              <div className="relative flex-1">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Search datasets..."
-                  value={heroSearch}
-                  onChange={(e) => setHeroSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm"
-                />
-              </div>
-              <button type="submit" className="px-4 py-2.5 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-slate-900 text-sm font-medium rounded-lg transition-colors shrink-0">
-                Search
-              </button>
-            </form>
-
-            <div className="flex flex-wrap gap-2.5 animate-fade-in-delay-3">
-              <Link to="/overview" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors">
-                Explore overview
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-              </Link>
-              <Link to="/datasets" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
-                Browse datasets
-              </Link>
+            <div className="hidden lg:grid grid-cols-2 gap-3 flex-1 max-w-sm animate-fade-in-delay-2">
+              {HERO_CHARTS.map((chart) => (
+                <div
+                  key={chart.label}
+                  className="rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm p-3.5 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 truncate pr-1">{chart.label}</span>
+                    <span className={`text-[10px] font-bold shrink-0 ${chart.positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                      {chart.change}
+                    </span>
+                  </div>
+                  <HeroSparkline values={chart.values} color={chart.color} />
+                  <div className="mt-1.5 text-[11px] font-semibold text-slate-900 dark:text-white tabular-nums">{chart.latest}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -173,7 +252,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-5 py-16 md:py-20">
           <div className="mb-10">
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">How it works</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Live data from primary sources, processed in-browser.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Data from primary sources, processed in-browser.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-4">
             <div className="rounded-xl border border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900/50 p-5">
