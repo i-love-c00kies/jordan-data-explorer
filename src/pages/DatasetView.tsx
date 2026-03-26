@@ -21,10 +21,12 @@ const COLORBLIND_COLORS = ['#0072B2', '#009E73', '#D55E00', '#CC79A7', '#F0E442'
 
 const COMPARISON_ENTITIES: Record<string, string[]> = {
   world: ['World'],
+  mena: ['Middle East & North Africa', 'Arab World', 'Middle East and North Africa'],
 };
 
 const COMPARISON_DISPLAY: Record<string, string> = {
   world: 'World',
+  mena: 'MENA',
 };
 
 const TRC_JORDAN_DATA: Record<number, number> = {
@@ -172,6 +174,71 @@ const generateProjections = (
   return result;
 };
 
+const HeatmapGrid = ({ data, mainKey, unit, isDark }: { data: any[]; mainKey: string; unit: string; isDark: boolean }) => {
+  const values = data.map(d => d[mainKey]).filter((v): v is number => v != null && !isNaN(v));
+  const min = values.length ? Math.min(...values) : 0;
+  const max = values.length ? Math.max(...values) : 1;
+  const [hovered, setHovered] = useState<{ year: string; value: number } | null>(null);
+
+  const getColor = (value: number | null) => {
+    if (value == null || isNaN(value)) return isDark ? '#1e293b' : '#f1f5f9';
+    const ratio = max === min ? 0.5 : (value - min) / (max - min);
+    if (isDark) {
+      const r = Math.round(30 + ratio * (37 - 30));
+      const g = Math.round(41 + ratio * (99 - 41));
+      const b = Math.round(59 + ratio * (235 - 59));
+      return `rgb(${r},${g},${b})`;
+    }
+    const r = Math.round(219 + ratio * (37 - 219));
+    const g = Math.round(234 + ratio * (99 - 234));
+    const b = Math.round(254 + ratio * (235 - 254));
+    return `rgb(${r},${g},${b})`;
+  };
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between flex-wrap gap-2 text-xs text-slate-400 dark:text-slate-500">
+        <span>Color intensity by value — lighter = lower, darker = higher</span>
+        {hovered ? (
+          <span className="font-semibold text-slate-700 dark:text-slate-200">
+            {hovered.year}: {hovered.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}{unit}
+          </span>
+        ) : (
+          <span>Hover a cell for details</span>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {data.map(d => {
+          const val = d[mainKey];
+          return (
+            <div
+              key={d.label}
+              style={{ backgroundColor: getColor(val), width: '30px', height: '30px' }}
+              className="rounded-sm cursor-default transition-all hover:scale-110 hover:z-10 relative flex items-end justify-center"
+              onMouseEnter={() => val != null && !isNaN(val) && setHovered({ year: String(d.label), value: val })}
+              onMouseLeave={() => setHovered(null)}
+              title={`${d.label}: ${val != null ? val.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}${unit}`}
+            >
+              <span className="text-[8px] font-medium text-white/70 mb-0.5 select-none">
+                {String(d.label).slice(-2)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        <span className="text-xs text-slate-400 dark:text-slate-500">Low</span>
+        <div className="h-2 w-32 rounded-full" style={{
+          background: isDark
+            ? 'linear-gradient(to right, rgb(30,41,59), rgb(37,99,235))'
+            : 'linear-gradient(to right, rgb(219,234,254), rgb(37,99,235))',
+        }} />
+        <span className="text-xs text-slate-400 dark:text-slate-500">High</span>
+      </div>
+    </div>
+  );
+};
+
 function useFavorites(id: string | undefined) {
   const [favorites, setFavorites] = useState<number[]>(() => {
     try { return JSON.parse(localStorage.getItem('jode-favorites') || '[]'); } catch { return []; }
@@ -197,6 +264,11 @@ export default function DatasetView() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { isFavorite, toggle: toggleFavorite } = useFavorites(id);
   const [showYoY, setShowYoY] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showDataTable, setShowDataTable] = useState(false);
+  const [tableSortKey, setTableSortKey] = useState<'year' | 'value' | 'change'>('year');
+  const [tableSortAsc, setTableSortAsc] = useState(true);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -249,6 +321,129 @@ export default function DatasetView() {
       return { label: d.label, change: isNaN(change) ? 0 : Math.round(change * 10) / 10 };
     });
   }, [activeData]);
+
+  const tableData = useMemo(() => {
+    const actual = data.filter(d => !String(d.label).includes('Proj'));
+    if (actual.length === 0) return [];
+    const mainKey = Object.keys(actual[0]).find(k => k !== 'label') || 'Total';
+    return actual.map((d, i) => {
+      const year = parseInt(String(d.label), 10);
+      const value = d[mainKey] as number | null;
+      const prev5Row = i >= 5 ? actual[i - 5] : null;
+      const prev5Val = prev5Row ? (prev5Row[mainKey] as number | null) : null;
+      const change5 =
+        value != null && prev5Val != null && prev5Val !== 0
+          ? ((value - prev5Val) / Math.abs(prev5Val)) * 100
+          : null;
+      return { year, value, change5, mainKey };
+    });
+  }, [data]);
+
+  const sortedTableData = useMemo(() => {
+    const sorted = [...tableData].sort((a, b) => {
+      if (tableSortKey === 'year') return tableSortAsc ? a.year - b.year : b.year - a.year;
+      if (tableSortKey === 'value') {
+        const av = a.value ?? -Infinity;
+        const bv = b.value ?? -Infinity;
+        return tableSortAsc ? av - bv : bv - av;
+      }
+      const ac = a.change5 ?? -Infinity;
+      const bc = b.change5 ?? -Infinity;
+      return tableSortAsc ? ac - bc : bc - ac;
+    });
+    return sorted;
+  }, [tableData, tableSortKey, tableSortAsc]);
+
+  const handleTableSort = (key: 'year' | 'value' | 'change') => {
+    if (tableSortKey === key) {
+      setTableSortAsc(v => !v);
+    } else {
+      setTableSortKey(key);
+      setTableSortAsc(true);
+    }
+  };
+
+  const downloadCSV = () => {
+    const unit = metadata.unit;
+    const rows = [['Year', `${metadata.title} (${unit || 'Value'})`, '5-yr Change %']];
+    tableData.forEach(d => {
+      rows.push([
+        String(d.year),
+        d.value != null ? String(d.value) : '',
+        d.change5 != null ? `${d.change5.toFixed(1)}` : '',
+      ]);
+    });
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${metadata.title.replace(/\s+/g, '-').toLowerCase()}-jordan.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('CSV downloaded', 'success');
+  };
+
+  const handleExportPDF = async () => {
+    if (!chartRef.current) return;
+    setExportingPdf(true);
+    try {
+      const { toPng } = await import('html-to-image');
+      const dataUrl = await toPng(chartRef.current, { cacheBust: true });
+
+      const actual = data.filter(d => !String(d.label).includes('Proj'));
+      const projRows = data.filter(d => String(d.label).includes('Proj'));
+      const mainKey = actual.length > 0 ? (Object.keys(actual[0]).find(k => k !== 'label') || 'Total') : 'Total';
+      const latestRow = actual[actual.length - 1];
+      const latestValue = latestRow ? latestRow[mainKey] : null;
+      const proj2030 = projRows.find(d => String(d.label).startsWith('2030'));
+      const proj2030Value = proj2030 ? proj2030[mainKey] : null;
+
+      const win = window.open('', '_blank');
+      if (!win) { setExportingPdf(false); return; }
+
+      win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>${metadata.title} — JODE</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui,-apple-system,sans-serif; padding: 40px; color: #1e293b; background: #fff; }
+  h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; color: #0f172a; }
+  .subtitle { font-size: 13px; color: #64748b; margin-bottom: 8px; }
+  .desc { font-size: 13px; color: #475569; margin-bottom: 24px; line-height: 1.6; max-width: 700px; }
+  .chart-img { width: 100%; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 24px; display: block; }
+  .stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .stat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 24px; min-width: 160px; }
+  .stat-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .stat-value { font-size: 24px; font-weight: 700; color: #0f172a; }
+  .stat-unit { font-size: 13px; font-weight: 400; color: #64748b; }
+  .footer { font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 12px; margin-top: 8px; }
+  @media print { body { padding: 20px; } }
+</style>
+</head>
+<body>
+<h1>${metadata.title}</h1>
+<p class="subtitle">Jordan · Source: Our World in Data</p>
+<p class="desc">${configDesc || ''}</p>
+<img src="${dataUrl}" class="chart-img" alt="${metadata.title} chart" />
+<div class="stats">
+  ${latestValue != null ? `<div class="stat"><div class="stat-label">Latest Value</div><div class="stat-value">${Number(latestValue).toLocaleString(undefined,{maximumFractionDigits:2})}<span class="stat-unit"> ${metadata.unit}</span></div></div>` : ''}
+  ${proj2030Value != null ? `<div class="stat"><div class="stat-label">2030 Projection</div><div class="stat-value">${Number(proj2030Value).toLocaleString(undefined,{maximumFractionDigits:2})}<span class="stat-unit"> ${metadata.unit}</span></div></div>` : ''}
+  ${actual.length > 0 ? `<div class="stat"><div class="stat-label">Data Span</div><div class="stat-value" style="font-size:18px">${actual[0].label}–${actual[actual.length-1].label}</div></div>` : ''}
+</div>
+<div class="footer">Generated by JODE (Jordan Data Explorer) &mdash; ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+<script>window.onload = () => { setTimeout(() => window.print(), 600); }<\/script>
+</body>
+</html>`);
+      win.document.close();
+    } catch {
+      showToast('Failed to generate PDF', 'error');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
   const lineDefs = useMemo(() => {
     const conf = OWID_CONFIG[id || '4'];
@@ -692,6 +887,24 @@ export default function DatasetView() {
                 <ExportButton data={activeData} fileName={metadata.title || 'Dataset'} />
                 <DownloadChartButton chartRef={chartRef} fileName={metadata.title || 'Dataset'} />
                 <EmbedButton datasetId={id || '4'} />
+                <button
+                  onClick={handleExportPDF}
+                  disabled={exportingPdf}
+                  title="Export as PDF"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-xs font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {exportingPdf ? (
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                    </svg>
+                  )}
+                  PDF
+                </button>
                 <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                   {[['all', 'All time'], ['recent', 'Last 20 yrs']].map(([key, label]) => (
                     <button key={key} onClick={() => { setTimeFilter(key); setShowYoY(false); }} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${timeFilter === key && !showYoY ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>{label}</button>
@@ -771,6 +984,117 @@ export default function DatasetView() {
           </div>
         </div>
       </div>
+
+      {/* Heatmap Panel */}
+      {!loading && data.length > 0 && (() => {
+        const actual = data.filter(d => !String(d.label).includes('Proj'));
+        if (actual.length === 0) return null;
+        const mainKey = Object.keys(actual[0]).find(k => k !== 'label') || 'Total';
+        return (
+          <div className="max-w-5xl mx-auto px-5 pb-4">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+              <button
+                onClick={() => setShowHeatmap(v => !v)}
+                className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                  </svg>
+                  Heatmap Calendar
+                  <span className="text-xs font-normal text-slate-400 dark:text-slate-500">{actual.length} years</span>
+                </span>
+                <svg className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${showHeatmap ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+              {showHeatmap && (
+                <div className="px-5 pb-5 border-t border-slate-100 dark:border-slate-800">
+                  <div className="pt-4">
+                    <HeatmapGrid data={actual} mainKey={mainKey} unit={metadata.unit} isDark={isDark} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Data Table Panel */}
+      {!loading && sortedTableData.length > 0 && (
+        <div className="max-w-5xl mx-auto px-5 pb-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5">
+              <button
+                onClick={() => setShowDataTable(v => !v)}
+                className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors"
+              >
+                <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-1.5 0H3.375" />
+                </svg>
+                Data Table
+                <span className="text-xs font-normal text-slate-400 dark:text-slate-500">{sortedTableData.length} rows</span>
+                <svg className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${showDataTable ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+              <button
+                onClick={downloadCSV}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-md text-xs font-semibold transition-all"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Download CSV
+              </button>
+            </div>
+
+            {showDataTable && (
+              <div className="border-t border-slate-100 dark:border-slate-800 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/60">
+                      {(['year', 'value', 'change'] as const).map(col => (
+                        <th
+                          key={col}
+                          onClick={() => handleTableSort(col)}
+                          className="px-5 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 select-none transition-colors"
+                        >
+                          <span className="flex items-center gap-1">
+                            {col === 'year' ? 'Year' : col === 'value' ? `Value (${metadata.unit || '—'})` : '5-yr Change'}
+                            <span className="text-slate-300 dark:text-slate-600">
+                              {tableSortKey === col ? (tableSortAsc ? ' ↑' : ' ↓') : ' ↕'}
+                            </span>
+                          </span>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {sortedTableData.map(row => (
+                      <tr key={row.year} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="px-5 py-2.5 font-mono text-xs font-medium text-slate-700 dark:text-slate-200 tabular-nums">{row.year}</td>
+                        <td className="px-5 py-2.5 font-mono text-xs text-slate-900 dark:text-white tabular-nums">
+                          {row.value != null ? row.value.toLocaleString(undefined, { maximumFractionDigits: 3 }) : '—'}
+                        </td>
+                        <td className="px-5 py-2.5 font-mono text-xs tabular-nums">
+                          {row.change5 != null ? (
+                            <span className={row.change5 >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}>
+                              {row.change5 >= 0 ? '+' : ''}{row.change5.toFixed(1)}%
+                            </span>
+                          ) : (
+                            <span className="text-slate-300 dark:text-slate-600">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <SourceDrawer datasetId={id || '4'} />
 
